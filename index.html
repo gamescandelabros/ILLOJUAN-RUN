@@ -132,6 +132,9 @@ h1, .brand {
 .btn[disabled] { opacity: 0.65; cursor: default; box-shadow: none; transform: none; }
 .minor { display: flex; gap: 8px; }
 .modes { display: flex; gap: 8px; }
+.minor { align-items: center; }
+.btn-full { display: inline-flex; align-items: center; justify-content: center; padding: 8px 10px; }
+.ext .btn-full { display: none; }
 
 /* San Andreas colours: buttons, panels and accents follow the map */
 .stage[data-map="sanandreas"] {
@@ -403,7 +406,7 @@ canvas#game {
     <div class="topbar">
       <span class="kicker">Menú principal</span>
       <button id="btn-theme" class="btn small" type="button" aria-label="Cambiar el mapa del fondo">Mapa: Vice City</button>
-      <button id="btn-skins" class="btn small primary" type="button">Skins</button>
+      <div class="minor"><button class="btn small btn-full" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button><button id="btn-skins" class="btn small primary" type="button">Skins</button></div>
     </div>
 
     <header class="hero">
@@ -442,7 +445,7 @@ canvas#game {
     <div class="topbar">
       <button id="btn-maps-back" class="btn small" type="button">← Menú</button>
       <h1 class="brand">Elige mapa</h1>
-      <span class="kicker" id="maps-mode">Runner</span>
+      <div class="minor"><span class="kicker" id="maps-mode">Runner</span><button class="btn small btn-full" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button></div>
     </div>
     <div class="maps">
       <button class="map-card" type="button" data-map="vice">
@@ -475,7 +478,7 @@ canvas#game {
     <div class="topbar">
       <button id="btn-levels-back" class="btn small" type="button">← Mapas</button>
       <h1 class="brand" id="levels-title">Niveles</h1>
-      <button id="btn-endless" class="btn small primary" type="button">∞ Infinito</button>
+      <div class="minor"><button class="btn small btn-full" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button><button id="btn-endless" class="btn small primary" type="button">∞ Infinito</button></div>
     </div>
     <div id="levels-grid" class="levels"></div>
   </section>
@@ -485,6 +488,7 @@ canvas#game {
     <div class="topbar">
       <button id="btn-skins-back" class="btn small" type="button">← Menú</button>
       <h1 class="brand">Skins</h1>
+      <button class="btn small btn-full" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
     </div>
     <p class="lead">Tu récord es tu dinero. Cada personaje se desbloquea al llegar a su cifra, y el dinero no se gasta. Récord actual: <span id="skins-rec" class="money">$00000</span></p>
     <div id="skins-grid" class="skins"></div>
@@ -496,6 +500,7 @@ canvas#game {
       <button id="btn-back" class="btn small" type="button">← Menú</button>
       <h1 class="brand" id="play-map">Vice City</h1>
       <div class="minor">
+        <button class="btn small btn-full" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
         <button id="btn-pause" class="btn small" type="button">Pausa</button>
         <button id="btn-sound" class="btn small" type="button">Sonido: sí</button>
       </div>
@@ -2228,6 +2233,7 @@ canvas#game {
   }
   window.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
+    if ((e.key === 'f' || e.key === 'F') && fsOk && !document.documentElement.classList.contains('ext')) { e.preventDefault(); toggleFull(); return; }
     if (e.key === 'Escape') {
       if (view !== 'menu') { e.preventDefault(); showView(view === 'play' ? 'levels' : 'menu'); }
       return;
@@ -2274,6 +2280,24 @@ canvas#game {
 
   bPause.addEventListener('click', function () { togglePause(); bPause.blur(); });
   bSound.addEventListener('click', function () { toggleMute(); bSound.blur(); });
+
+  // full screen (web page only: browser popups cannot go full screen)
+  function fsElement() { return document.fullscreenElement || document.webkitFullscreenElement || null; }
+  function toggleFull() {
+    try {
+      const d = document, e = d.documentElement;
+      if (fsElement()) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+      else {
+        const p = (e.requestFullscreen || e.webkitRequestFullscreen).call(e);
+        if (p && p.catch) p.catch(function () { /* blocked by the host page */ });
+      }
+    } catch (err) { /* not supported */ }
+  }
+  const fsOk = !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+  Array.prototype.forEach.call(document.querySelectorAll('.btn-full'), function (b) {
+    if (!fsOk) { b.style.display = 'none'; return; }
+    b.addEventListener('click', function () { toggleFull(); b.blur(); });
+  });
 
   // game mode switch (cover button)
   const modeName = $('mode-name'), modeDesc = $('mode-desc'), mapsMode = $('maps-mode');
