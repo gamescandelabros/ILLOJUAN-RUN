@@ -761,7 +761,7 @@ canvas#game {
       }
     },
     {
-      id: 'spoke', name: 'Spok Sponha', cost: 3000,
+      id: 'spoke', name: 'Spok Sponha', cost: 1500,
       sprites: { stand: SPOK_STAND, runA: SPOK_A, runB: SPOK_B, duckA: SPOK_DUCK_A, duckB: SPOK_DUCK_B, dead: SPOK_DEAD },
       colors: function (k) {
         return {
@@ -772,7 +772,7 @@ canvas#game {
       }
     },
     {
-      id: 'pera', name: 'Guille', cost: 5000,
+      id: 'pera', name: 'Guille', cost: 2200,
       sprites: { stand: PERA_STAND, runA: PERA_A, runB: PERA_B, duckA: PERA_DUCK_A, duckB: PERA_DUCK_B, dead: PERA_DEAD },
       colors: function (k) {
         return {
@@ -1932,7 +1932,7 @@ canvas#game {
   }
 
   // wanted-level stars: one more lit for each record milestone
-  const WANTED = [300, 800, 1500, 3000, 5000];
+  const WANTED = [300, 700, 1500, 2200, 3000];
   const STAR = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><polygon points="12,2 15,9 22,9.5 16.5,14.5 18.5,22 12,18 5.5,22 7.5,14.5 2,9.5 9,9" fill="FILL" stroke="#2A0B4A" stroke-width="1.7" stroke-linejoin="round"/></svg>';
   function updateWanted(best) {
     let lit = 0;
