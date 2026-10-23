@@ -3,7 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ILLOJUAN RUN</title>
+<meta name="description" content="Illojuan Run: juego gratis de correr y saltar con 2 mapas, modo Runner y modo Geometry, 20 niveles por modo y skins que se desbloquean con tu récord.">
+<meta property="og:title" content="Illojuan Run: juego de correr y saltar">
+<meta property="og:description" content="Runner infinito y modo Geometry, 20 niveles por modo, Vice City y San Andreas. Gratis, en el navegador.">
+<meta property="og:type" content="website">
+<title>Illojuan Run: juego gratis de correr y saltar (Runner y Geometry)</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1971,7 +1975,7 @@ canvas#game {
       const x = xs[i];
       ctx.fillStyle = 'rgba(26,10,46,0.5)';
       ctx.fillRect(x + 4, 92, 62, 5);
-      ctx.globalAlpha = s.cost <= best ? 1 : 0.8;
+      ctx.globalAlpha = 1;
       sprite(s.sprites.stand, x, 2, 5, s.colors(k));
       ctx.globalAlpha = 1;
       ctx.font = '700 10px Silkscreen, "Courier New", monospace';
