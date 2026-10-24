@@ -1386,7 +1386,7 @@ canvas#game {
 
     const vmax = curStage ? curStage.vmax : (mode === 'gd' ? 15 : MAX_SPEED);
     const acc = curStage ? curStage.accel : (mode === 'gd' ? 0.003 : ACCEL);
-    speed = Math.min(vmax, speed + acc * dt);
+    if (mode !== 'gd') speed = Math.min(vmax, speed + acc * dt); // Geometry: constant speed, no acceleration
     score += speed * 0.025 * dt;
 
     const ms = Math.floor(score / 100);
