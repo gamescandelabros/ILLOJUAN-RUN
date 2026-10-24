@@ -1191,7 +1191,7 @@ canvas#game {
     { L: 1, p: [['p', 0, 84]] },
     { L: 2, p: [['s', 0], ['s', 20], ['s', 40]] },
     { L: 2, p: [['b', 0, 1], ['s', 100]] },
-    { L: 2, p: [['b', 0, 1], ['b', 64, 2]] },
+    { L: 2, p: [['b', 0, 1], ['b', 36, 2]] },
     { L: 2, p: [['p', 0, 110]] },
     { L: 3, p: [['s', 0], ['s', 110]] },
     { L: 3, p: [['b', 0, 2], ['s', 120]] },
@@ -1225,15 +1225,15 @@ canvas#game {
     { L: 3, st: true, p: [['b', 0, 1, 60], ['b', 60, 2, 60], ['b', 120, 3, 60], ['b', 180, 2, 60], ['b', 240, 1, 60]] },
     { L: 4, st: true, p: [['b', 0, 1, 72], ['b', 72, 2, 72], ['b', 144, 3, 72], ['s', 230], ['s', 250]] },
     { L: 5, st: true, p: [['b', 0, 1, 48], ['b', 48, 2, 48], ['b', 96, 3, 48], ['b', 144, 4, 48], ['s', 210], ['s', 230]] },
-    { L: 6, st: true, p: [['b', 0, 1, 90], ['b', 90, 3, 90], ['s', 200], ['s', 220]] },
+    { L: 6, st: true, p: [['b', 0, 1, 90], ['b', 90, 2, 90], ['s', 200], ['s', 220]] },
     { L: 7, st: true, p: [['b', 0, 2, 60], ['b', 60, 3, 60], ['b', 120, 4, 60], ['s', 200]] },
     { L: 8, st: true, p: [['b', 0, 1, 60], ['b', 60, 2, 60], ['b', 120, 3, 60], ['p', 180, 100], ['b', 280, 3, 60], ['b', 340, 2, 60], ['b', 400, 1, 60]] },
-    { L: 9, st: true, p: [['b', 0, 2, 190], ['b', 190, 4, 190], ['b', 380, 6, 190]] },
+    { L: 9, st: true, p: [['b', 0, 1, 190], ['b', 190, 2, 190], ['b', 380, 3, 190]] },
     { L: 10, st: true, p: [['b', 0, 1, 36], ['b', 36, 2, 36], ['b', 72, 3, 36], ['b', 108, 2, 36], ['b', 144, 3, 36], ['b', 180, 4, 36], ['b', 216, 3, 36], ['s', 270], ['s', 290]] },
     { L: 11, st: true, p: [['b', 0, 1, 100], ['s', 40, 36], ['b', 100, 2, 100], ['s', 140, 72], ['b', 200, 3, 100]] },
     { L: 12, st: true, p: [['b', 0, 1, 60], ['b', 60, 2, 60], ['b', 120, 3, 60], ['b', 180, 4, 60], ['p', 240, 110], ['b', 350, 4, 60], ['b', 410, 3, 60], ['b', 470, 2, 60], ['b', 530, 1, 60]] },
     { L: 13, st: true, p: [['b', 0, 1, 48], ['s', 60], ['b', 100, 2, 48], ['s', 160], ['s', 180], ['b', 230, 3, 48], ['p', 278, 100]] },
-    { L: 14, st: true, p: [['b', 0, 2, 190], ['b', 190, 4, 190], ['b', 380, 6, 190], ['s', 640], ['s', 660], ['s', 680]] },
+    { L: 14, st: true, p: [['b', 0, 1, 190], ['b', 190, 2, 190], ['b', 380, 3, 190], ['s', 640], ['s', 660], ['s', 680]] },
     { L: 15, st: true, p: [['b', 0, 1, 80], ['b', 80, 2, 80], ['b', 160, 3, 80], ['b', 240, 4, 80], ['p', 320, 120], ['s', 460], ['s', 480]] }
   ];
   // items: ['s', dx, rise] spike, ['b', dx, units, width] block, ['p', dx, width] pit
@@ -1287,6 +1287,7 @@ canvas#game {
       runT += dt;
     }
   }
+  const STEP_MAX = 40;   // tallest step (a bit over one block) that holding the jump key climbs
   function gdCollide() {
     const pb = playerBox();
     for (let i = 0; i < obstacles.length; i++) {
@@ -1298,7 +1299,9 @@ canvas#game {
           const rise = player.y - o.y;   // how far the feet are below the top of the block
           // falling and just touching the top corner this frame: you landed on it (blocks are safe from above)
           if (player.vy >= 0 && rise <= player.vy + 4) { player.y = o.y; player.vy = 0; player.onGround = true; }
-          else if (rise > 8) return true;   // hitting the side of a block is a crash, as in Geometry Dash
+          // holding the jump key steps up a one-block rise (stairs); without it, or for taller walls, the side of a block is a crash
+          else if (jumpHeld && rise > 8 && rise <= STEP_MAX) { player.y = o.y; player.vy = 0; player.onGround = true; }
+          else if (rise > 8) return true;
         }
       }
     }
@@ -1981,7 +1984,7 @@ canvas#game {
   const TIPS = [
     'Supera la meta de cada nivel para desbloquear el siguiente. Hay 20 por modo.',
     'Modo Geometry: mantén Espacio para saltar sin parar. Un fallo y empiezas de nuevo.',
-    'En Geometry las escaleras se suben saltando de escalón en escalón: tocar un escalón de lado es un choque.',
+    'En Geometry, mantén el salto para subir las escaleras de escalón en escalón. Sin mantenerlo, tocar un escalón de lado es un choque.',
     'Los helicópteros medios se esquivan agachado. Saltar te estrella.',
     'Cada 100 dólares subes de nivel: más velocidad y obstáculos más duros.',
     'Los autobuses son altos: salta justo antes de llegar a ellos.',
