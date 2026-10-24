@@ -1021,6 +1021,19 @@ canvas#game {
   function clampProg(v) { const n = parseInt(v || '1', 10) || 1; return Math.max(1, Math.min(LEVELS_MAX + 1, n)); }
   // prog = first level not yet beaten, per mode (21 = all beaten)
   // progress is saved per mode and per map (older saves count for both maps)
+  // creator access: open the page once with ?creador=<secret> and this browser unlocks every level (?creador=off turns it off)
+  const CREATOR_HASH = 2678934168;
+  let creator = lsGet('illojuan-creator') === '1';
+  (function () {
+    try {
+      const t = new URLSearchParams(location.search).get('creador');
+      if (t !== null) {
+        if (t === 'off') { lsSet('illojuan-creator', '0'); creator = false; }
+        else if (strHash(t) === CREATOR_HASH) { lsSet('illojuan-creator', '1'); creator = true; }
+        if (history.replaceState) history.replaceState(null, '', location.pathname);
+      }
+    } catch (err) { /* ignore */ }
+  })();
   function getProg() {
     let v = lsGet('illojuan-prog-' + mode + '-' + currentMapId);
     if (v === null) v = lsGet('illojuan-prog-' + mode);
@@ -1143,11 +1156,11 @@ canvas#game {
   function renderLevels() {
     const grid = $('levels-grid');
     grid.textContent = '';
-    $('levels-title').textContent = MAPS[currentMapId].name + ' · ' + (mode === 'gd' ? 'Geometry' : 'Runner');
+    $('levels-title').textContent = MAPS[currentMapId].name + ' · ' + (mode === 'gd' ? 'Geometry' : 'Runner') + (creator ? ' ★' : '');
     const un = getProg();
     for (let n = 1; n <= LEVELS_MAX; n++) {
       const d = stageDef(n, mode);
-      const locked = n > un, done = n < un;
+      const locked = !creator && n > un, done = n < un;
       const b = el('button', 'lv' + (locked ? ' is-locked' : '') + (done ? ' is-done' : '') + (n === un ? ' is-current' : ''));
       b.type = 'button';
       b.disabled = locked;
