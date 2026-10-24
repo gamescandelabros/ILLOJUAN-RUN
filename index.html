@@ -1021,19 +1021,10 @@ canvas#game {
   function clampProg(v) { const n = parseInt(v || '1', 10) || 1; return Math.max(1, Math.min(LEVELS_MAX + 1, n)); }
   // prog = first level not yet beaten, per mode (21 = all beaten)
   // progress is saved per mode and per map (older saves count for both maps)
-  // creator access: open the page once with ?creador=<secret> and this browser unlocks every level (?creador=off turns it off)
-  const CREATOR_HASH = 2678934168;
-  let creator = lsGet('illojuan-creator') === '1';
-  (function () {
-    try {
-      const t = new URLSearchParams(location.search).get('creador');
-      if (t !== null) {
-        if (t === 'off') { lsSet('illojuan-creator', '0'); creator = false; }
-        else if (strHash(t) === CREATOR_HASH) { lsSet('illojuan-creator', '1'); creator = true; }
-        if (history.replaceState) history.replaceState(null, '', location.pathname);
-      }
-    } catch (err) { /* ignore */ }
-  })();
+  // Creator preview: true only in the private copy in the Claude conversation, so every level can be tested there.
+  // The public website and the Chrome extension are built with false (see the build scripts), so there each level must be earned.
+  const CREATOR_ALL = false;
+  const creator = CREATOR_ALL;
   function getProg() {
     let v = lsGet('illojuan-prog-' + mode + '-' + currentMapId);
     if (v === null) v = lsGet('illojuan-prog-' + mode);
