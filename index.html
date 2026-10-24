@@ -1294,7 +1294,12 @@ canvas#game {
       if (o.kind === 'spike') {
         if (hit(pb, { x: o.x + 6, y: o.y + 9, w: o.w - 12, h: o.h - 9 })) return true;
       } else if (o.kind === 'block') {
-        if (hit(pb, { x: o.x + 1, y: o.y + 1, w: o.w - 2, h: o.h - 1 }) && player.y > o.y + 8) return true;
+        if (hit(pb, { x: o.x + 1, y: o.y + 1, w: o.w - 2, h: o.h - 1 })) {
+          const rise = player.y - o.y;   // how far the feet are below the top of the block
+          // falling and just touching the top corner this frame: you landed on it (blocks are safe from above)
+          if (player.vy >= 0 && rise <= player.vy + 4) { player.y = o.y; player.vy = 0; player.onGround = true; }
+          else if (rise > 8) return true;   // hitting the side of a block is a crash, as in Geometry Dash
+        }
       }
     }
     return player.y > GROUND + 30;
@@ -1391,8 +1396,10 @@ canvas#game {
     } else {
       const duck = duckHeld();
       if (!p.onGround) {
-        p.vy += GRAV * (duck ? 2.6 : 1) * dt;
-        p.y += p.vy * dt;
+        // the faster you run, the shorter the jump lasts: it always covers the same distance, so there is time to land
+        const tv = dt * Math.max(1, speed / 7);
+        p.vy += GRAV * (duck ? 2.6 : 1) * tv;
+        p.y += p.vy * tv;
         if (p.y >= GROUND) { p.y = GROUND; p.vy = 0; p.onGround = true; }
       } else {
         runT += dt;
