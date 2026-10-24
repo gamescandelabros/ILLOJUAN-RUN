@@ -1020,14 +1020,33 @@ canvas#game {
   const LEVELS_MAX = 20;
   function clampProg(v) { const n = parseInt(v || '1', 10) || 1; return Math.max(1, Math.min(LEVELS_MAX + 1, n)); }
   // prog = first level not yet beaten, per mode (21 = all beaten)
-  const prog = { run: clampProg(lsGet('illojuan-prog-run')), gd: clampProg(lsGet('illojuan-prog-gd')) };
+  // progress is saved per mode and per map (older saves count for both maps)
+  function getProg() {
+    let v = lsGet('illojuan-prog-' + mode + '-' + currentMapId);
+    if (v === null) v = lsGet('illojuan-prog-' + mode);
+    return clampProg(v);
+  }
+  function setProg(n) { lsSet('illojuan-prog-' + mode + '-' + currentMapId, String(n)); }
 
   const player = { x: 44, y: GROUND, vy: 0, onGround: true, ducking: false };
   let obstacles = [];
 
   function duckHeld() { return downHeld || touchDuck; }
 
+  // levels are the same every time you play them: a seeded generator replaces Math.random while a level is running
+  let rngState = 1;
+  function strHash(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function rngNext() {
+    rngState = (rngState + 0x6D2B79F5) >>> 0;
+    let t = rngState;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  function rnd() { return curStage ? rngNext() : Math.random(); }
+
   function resetRun() {
+    if (curStage) rngState = strHash(currentMapId + mode + curStage.n);
     obstacles = [];
     score = 0; speed = curStage ? curStage.speed0 : (mode === 'gd' ? 6.5 : START_SPEED);
     world.night = (curStage && curStage.night) ? 1 : 0; world.palm = 0; world.city = 0; world.pole = 0; world.hill = 0; world.ground = 0;
@@ -1094,16 +1113,14 @@ canvas#game {
   }
 
   /* ---------- levels: 20 per mode, each with a finish line; beating one unlocks the next ---------- */
-  const STAGE_NAMES = ['Calle', 'Barrio', 'Puerto', 'Autovía', 'Obras', 'Parking', 'Muelle', 'Túnel', 'Centro', 'Azotea',
-    'Puente', 'Hangar', 'Neón', 'Cañada', 'Polígono', 'Estación', 'Playa', 'Cumbre', 'Hora punta', 'La Final'];
   function stageDef(n, md) {
-    const gd = md === 'gd';
+    const gd = md === 'gd', sa = currentMapId === 'sanandreas';
     return {
-      n: n, name: STAGE_NAMES[n - 1],
-      goal: 300 + 90 * (n - 1),
+      n: n,
+      goal: (sa ? 330 + 95 * (n - 1) : 300 + 90 * (n - 1)),
       tierBase: 1 + Math.floor((n - 1) * 0.55),
-      night: n % 4 === 0,
-      speed0: gd ? Math.min(9, 6.5 + 0.12 * (n - 1)) : Math.min(11, 6 + 0.25 * (n - 1)),
+      night: sa ? n % 4 === 2 : n % 4 === 0,
+      speed0: (sa ? 0.3 : 0) + (gd ? Math.min(9, 6.5 + 0.12 * (n - 1)) : Math.min(11, 6 + 0.25 * (n - 1))),
       vmax: gd ? Math.min(16, 9.5 + 0.35 * (n - 1)) : Math.min(18, 11.5 + 0.35 * (n - 1)),
       accel: gd ? 0.003 : 0.004
     };
@@ -1113,10 +1130,7 @@ canvas#game {
     overAt = performance.now();
     const sc = Math.floor(score);
     if (sc > hi) { hi = sc; saveHi(map, hi); }
-    if (curStage && prog[mode] === curStage.n) {
-      prog[mode] = curStage.n + 1;
-      lsSet('illojuan-prog-' + mode, String(prog[mode]));
-    }
+    if (curStage && getProg() === curStage.n) setProg(curStage.n + 1);
     sfx.level();
   }
   function startStage(n) { curStage = stageDef(n, mode); showView('play'); }
@@ -1129,17 +1143,16 @@ canvas#game {
   function renderLevels() {
     const grid = $('levels-grid');
     grid.textContent = '';
-    $('levels-title').textContent = 'Niveles · ' + (mode === 'gd' ? 'Geometry' : 'Runner');
-    const un = prog[mode];
+    $('levels-title').textContent = MAPS[currentMapId].name + ' · ' + (mode === 'gd' ? 'Geometry' : 'Runner');
+    const un = getProg();
     for (let n = 1; n <= LEVELS_MAX; n++) {
       const d = stageDef(n, mode);
       const locked = n > un, done = n < un;
       const b = el('button', 'lv' + (locked ? ' is-locked' : '') + (done ? ' is-done' : '') + (n === un ? ' is-current' : ''));
       b.type = 'button';
       b.disabled = locked;
-      b.setAttribute('aria-label', 'Nivel ' + n + ', ' + d.name + (locked ? ', bloqueado' : (done ? ', superado' : '')));
+      b.setAttribute('aria-label', 'Nivel ' + n + (locked ? ', bloqueado' : (done ? ', superado' : '')));
       b.appendChild(el('span', 'lv-n', String(n)));
-      b.appendChild(el('span', 'lv-name', d.name));
       b.appendChild(el('span', 'lv-meta', locked ? 'BLOQUEADO' : (done ? 'SUPERADO' : 'META $' + d.goal)));
       b.addEventListener('click', function () { startStage(n); });
       grid.appendChild(b);
@@ -1154,11 +1167,16 @@ canvas#game {
     return 1 + Math.floor(score / 100);
   }
 
+  // each map favours different obstacles: Vice City more cones, barriers and helicopters; San Andreas more cars, buses and containers
+  const MAP_BIAS = { vice: { cone: 1.5, barrier: 1.5 }, sanandreas: { police: 1.7, bus: 1.7, container: 1.4 } };
   function pickType(L) {
     const table = SPAWN_TABLE[Math.min(L, SPAWN_TABLE.length) - 1];
-    let r = Math.random();
+    const bias = MAP_BIAS[currentMapId] || {};
+    let total = 0;
+    const wts = table.map(function (t) { const x = t[1] * (bias[t[0]] || 1); total += x; return x; });
+    let r = rnd() * total;
     for (let i = 0; i < table.length; i++) {
-      r -= table[i][1];
+      r -= wts[i];
       if (r <= 0) return table[i][0];
     }
     return table[0][0];
@@ -1230,13 +1248,23 @@ canvas#game {
     }
     return out;
   }
+  // Vice City leans on spikes and pits, San Andreas on blocks and stairs
+  function gdWeight(g) {
+    let sp = 0, bl = 0, pt = 0;
+    for (let i = 0; i < g.p.length; i++) { const k = g.p[i][0]; if (k === 's') sp++; else if (k === 'b') bl++; else pt++; }
+    const n = g.p.length;
+    return currentMapId === 'sanandreas' ? 1 + 2 * bl / n + (g.st ? 1.5 : 0) : 1 + 2 * (sp + 2 * pt) / n;
+  }
   function spawnGD() {
     const L = level();
     let pool = GDP.filter(function (g) { return g.L <= L && g.L > L - 5; });
     if (!pool.length) pool = GDP.slice(-5);
-    const g = pool[(Math.random() * pool.length) | 0];
+    let total = 0;
+    const wts = pool.map(function (p) { const x = gdWeight(p); total += x; return x; });
+    let pr = rnd() * total, g = pool[pool.length - 1];
+    for (let i = 0; i < pool.length; i++) { pr -= wts[i]; if (pr <= 0) { g = pool[i]; break; } }
     Array.prototype.push.apply(obstacles, gdBuild(g, W, speed));
-    lastGap = speed * (Math.max(18, 30 - L) + Math.random() * Math.max(6, 22 - 3 * (L - 1)));
+    lastGap = speed * (Math.max(18, 30 - L) + rnd() * Math.max(6, 22 - 3 * (L - 1)));
   }
   function gdPhysics(dt) {
     const p = player;
@@ -1285,7 +1313,7 @@ canvas#game {
   ];
   function spawnCombo(L) {
     const pool = RCOMBOS.filter(function (c) { return c.L <= L; });
-    const c = pool[(Math.random() * pool.length) | 0];
+    const c = pool[(rnd() * pool.length) | 0];
     let x = W;
     for (let i = 0; i < c.p.length; i++) {
       const it = c.p[i];
@@ -1300,31 +1328,31 @@ canvas#game {
         x += def.sw;
       }
     }
-    lastGap = speed * (Math.max(16, 27 - L) + 4 + Math.random() * 10);
+    lastGap = speed * (Math.max(16, 27 - L) + 4 + rnd() * 10);
   }
 
   function spawn() {
     if (mode === 'gd') { spawnGD(); return; }
     const L = level();
-    if (L >= 6 && Math.random() < Math.min(0.5, 0.15 + 0.04 * (L - 6))) { spawnCombo(L); return; }
-    const heliP = L < 2 ? 0 : Math.min(0.42, 0.12 + 0.06 * (L - 2));
+    if (L >= 6 && rnd() < Math.min(0.5, 0.15 + 0.04 * (L - 6))) { spawnCombo(L); return; }
+    const heliP = (L < 2 ? 0 : Math.min(0.42, 0.12 + 0.06 * (L - 2))) * (currentMapId === 'vice' ? 1.25 : 0.8);
     let o, extraPx = 0, extraF = 0;
-    if (pendingMid || Math.random() < heliP) {
-      const top = pendingMid ? GROUND - 38 : [GROUND - 58, GROUND - 38, GROUND - 18][(Math.random() * 3) | 0];
+    if (pendingMid || rnd() < heliP) {
+      const top = pendingMid ? GROUND - 38 : [GROUND - 58, GROUND - 38, GROUND - 18][(rnd() * 3) | 0];
       pendingMid = false;
       o = { kind: 'heli', x: W, y: top, w: 28, h: 16 };
       // helicopters fly faster than the ground scrolls, so leave extra room to keep the same gap on arrival
       extraPx = 40 + 715 / speed;
     } else {
       const def = OBS[pickType(L)];
-      const n = 1 + ((Math.random() * def.maxN(L)) | 0);
+      const n = 1 + ((rnd() * def.maxN(L)) | 0);
       o = { kind: 'ground', def: def, n: n, x: W, y: GROUND - def.sh, w: n * def.sw + (n - 1) * 4, h: def.sh };
       extraF = def.gapF;
-      if (L >= 4) pendingMid = Math.random() < Math.min(0.55, 0.15 + 0.07 * (L - 4));
+      if (L >= 4) pendingMid = rnd() < Math.min(0.55, 0.15 + 0.07 * (L - 4));
     }
     obstacles.push(o);
     // close together: 26 to 52 frames between obstacles, tightening a little with each level
-    lastGap = speed * (Math.max(16, 27 - L) + extraF + Math.random() * Math.max(8, 26 - 3 * (L - 1))) + extraPx;
+    lastGap = speed * (Math.max(16, 27 - L) + extraF + rnd() * Math.max(8, 26 - 3 * (L - 1))) + extraPx;
   }
 
   function hit(a, b) {
@@ -1874,7 +1902,6 @@ canvas#game {
       ctx.fillRect(bx - 2, 10, bw + 4, 12);
       ctx.fillStyle = 'rgb(104,230,78)';
       ctx.fillRect(bx, 12, Math.round(bw * Math.min(1, score / curStage.goal)), 8);
-      banner(curStage.name.toUpperCase(), bx + bw / 2, 42, 10);
     } else {
       banner('NIVEL ' + level(), W - 14, 47, 11, 'right');
     }
@@ -2169,7 +2196,7 @@ canvas#game {
 
   function enterPlay() {
     map = MAPS[currentMapId];
-    $('play-map').textContent = curStage ? ('Nivel ' + curStage.n + ' · ' + curStage.name) : map.name + (mode === 'gd' ? ' · GEOMETRY' : '');
+    $('play-map').textContent = curStage ? ('Nivel ' + curStage.n) : map.name + (mode === 'gd' ? ' · GEOMETRY' : '');
     $('play-map').className = 'brand' + (map.id === 'sanandreas' ? ' sa' : '');
     hi = loadHi(map);
     resetToIdle();
