@@ -1024,8 +1024,29 @@ canvas#game {
       if (mStep % 8 === 0) mBar++;
     }
   }
+  // San Andreas plays a YouTube track through the official embedded player (Eshtewy - Feisty); it starts on the player's click/key press
+  const YT_ID = 'xnm2_aGbLew';
+  let ytFrame = null;
+  function ytStart() {
+    if (ytFrame) return;
+    try {
+      ytFrame = document.createElement('iframe');
+      ytFrame.src = 'https://www.youtube.com/embed/' + YT_ID + '?autoplay=1&loop=1&playlist=' + YT_ID + '&controls=0&playsinline=1';
+      ytFrame.allow = 'autoplay; encrypted-media';
+      ytFrame.setAttribute('aria-hidden', 'true');
+      ytFrame.tabIndex = -1;
+      ytFrame.title = 'Música';
+      ytFrame.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;border:0;opacity:0.01;pointer-events:none;';
+      document.body.appendChild(ytFrame);
+    } catch (e) { ytFrame = null; }
+  }
+  function ytStop() {
+    if (ytFrame) { try { ytFrame.remove(); } catch (e) { /* ignore */ } ytFrame = null; }
+  }
   function musicEnsure() {
-    if (muted || musicTimer) return;
+    if (muted) return;
+    if (currentMapId === 'sanandreas') { ytStart(); return; }
+    if (musicTimer) return;
     try {
       audioCtx();
       if (!master) {
@@ -1042,6 +1063,7 @@ canvas#game {
     } catch (e) { /* music is optional */ }
   }
   function musicStop() {
+    ytStop();
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
   }
 
