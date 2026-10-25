@@ -1059,11 +1059,14 @@ canvas#game {
       if (mStep % 8 === 0) mBar++;
     }
   }
-  // San Andreas plays a YouTube track through the official embedded player (Eshtewy - Feisty); it starts on the player's click/key press
-  const YT_ID = 'xnm2_aGbLew';
-  let ytFrame = null;
-  function ytStart() {
-    if (ytFrame) return;
+  // YouTube tracks through the official embedded player. Menus: GTA III theme; San Andreas matches: Eshtewy - Feisty.
+  // Browsers only allow sound after the first click or key press, so the menu track starts then.
+  const YT_MENU = 'qqpTq9_rf_Q', YT_SA = 'xnm2_aGbLew';
+  let ytFrame = null, ytId = null, gestured = false;
+  function ytStart(YT_ID) {
+    if (ytFrame && ytId === YT_ID) return;
+    ytStop();
+    ytId = YT_ID;
     try {
       ytFrame = document.createElement('iframe');
       ytFrame.src = 'https://www.youtube.com/embed/' + YT_ID + '?autoplay=1&loop=1&playlist=' + YT_ID + '&controls=0&playsinline=1&enablejsapi=1';
@@ -1074,7 +1077,7 @@ canvas#game {
       ytFrame.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;border:0;opacity:0.01;pointer-events:none;';
       ytFrame.addEventListener('load', ytVolume);
       document.body.appendChild(ytFrame);
-    } catch (e) { ytFrame = null; }
+    } catch (e) { ytFrame = null; ytId = null; }
   }
   function ytVolume() {
     if (!ytFrame || !ytFrame.contentWindow) return;
@@ -1083,10 +1086,11 @@ canvas#game {
   }
   function ytStop() {
     if (ytFrame) { try { ytFrame.remove(); } catch (e) { /* ignore */ } ytFrame = null; }
+    ytId = null;
   }
   function musicEnsure() {
     if (muted || !set.music) return;
-    if (currentMapId === 'sanandreas') { ytStart(); return; }
+    if (currentMapId === 'sanandreas') { ytStart(YT_SA); return; }
     if (musicTimer) return;
     try {
       audioCtx();
@@ -1103,8 +1107,13 @@ canvas#game {
       musicTimer = setInterval(musicTick, 90);
     } catch (e) { /* music is optional */ }
   }
+  function menuMusic() {
+    if (muted || !set.music || !gestured || view === 'play') return;
+    ytStart(YT_MENU);
+  }
+  function musicStopAll() { ytStop(); musicStop(); }
   function musicStop() {
-    ytStop();
+    if (!(view !== 'play' && ytId === YT_MENU)) ytStop();   // the menu track keeps playing while you move between menus
     if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
   }
 
@@ -2254,8 +2263,8 @@ canvas#game {
     document.documentElement.classList.toggle('hide-tips', !set.tips);
     if (master) master.gain.value = 0.55 * (set.musicVol / 70);
     ytVolume();
-    if (!set.music) musicStop();
-    else if (!muted && view === 'play' && state !== 'idle') musicEnsure();
+    if (!set.music) musicStopAll();
+    else if (!muted) { if (view === 'play') { if (state !== 'idle') musicEnsure(); } else menuMusic(); }
   }
   let wipeArmed = false;
   function renderSettings() {
@@ -2288,7 +2297,7 @@ canvas#game {
       i.addEventListener('change', function () { saveSet(); if (preview) preview(); });
       return i;
     }
-    row('Sonido (M)', 'Silencia todo el juego de golpe', [toggle(function () { return !muted; }, function (v) { muted = !v; bSound.textContent = 'Sonido: ' + (muted ? 'no' : 'sí'); if (muted) musicStop(); }, 'Sí', 'No')]);
+    row('Sonido (M)', 'Silencia todo el juego de golpe', [toggle(function () { return !muted; }, function (v) { muted = !v; bSound.textContent = 'Sonido: ' + (muted ? 'no' : 'sí'); if (muted) musicStopAll(); }, 'Sí', 'No')]);
     row('Música', 'Los temas de cada mapa', [slider('musicVol', set.music), toggle(function () { return set.music; }, function (v) { set.music = v; })]);
     row('Efectos', 'Saltos, golpes y avisos', [slider('sfxVol', set.sfx, function () { sfx.point(); }), toggle(function () { return set.sfx; }, function (v) { set.sfx = v; })]);
     row('Pausa automática', 'Pausa al cambiar de pestaña', [toggle(function () { return set.autoPause; }, function (v) { set.autoPause = v; })]);
@@ -2378,6 +2387,7 @@ canvas#game {
     else if (v === 'levels') { resetToIdle(); renderLevels(); }
     else if (v === 'skins') { resetToIdle(); renderSkins(); }
     else if (v === 'settings') { resetToIdle(); renderSettings(); }
+    if (v !== 'play') menuMusic();
     else if (v === 'play') { enterPlay(); }
   }
 
@@ -2430,8 +2440,9 @@ canvas#game {
   function toggleMute() {
     muted = !muted;
     bSound.textContent = 'Sonido: ' + (muted ? 'no' : 'sí');
-    if (muted) musicStop();
+    if (muted) musicStopAll();
     else if (view === 'play' && state !== 'idle') musicEnsure();
+    else if (view !== 'play') menuMusic();
   }
 
   // Works with the physical key (code) and with the typed character (key), so any keyboard layout is covered.
@@ -2567,6 +2578,7 @@ canvas#game {
       if (view === 'skins') renderSkins();
     }).catch(function () {});
   }
+  ['pointerdown', 'keydown'].forEach(function (ev) { window.addEventListener(ev, function () { if (!gestured) { gestured = true; menuMusic(); } }, true); });
   applySettings();
   setMode(mode);
   showView('menu');
