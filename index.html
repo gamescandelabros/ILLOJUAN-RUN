@@ -1551,7 +1551,7 @@ canvas#game {
     { L: 8, p: [['s', 0], ['s', 20], ['s', 40], ['p', 100, 100], ['s', 230], ['s', 250]] },
     { L: 8, p: [['b', 0, 2], ['s', 60], ['b', 100, 2], ['s', 160], ['b', 200, 2]] },
     { L: 9, p: [['p', 0, 130], ['p', 200, 130]] },
-    { L: 10, p: [['s', 0], ['s', 20], ['s', 40], ['s', 60], ['p', 120, 110], ['s', 280], ['s', 300]] },
+    { L: 10, p: [['s', 0], ['s', 20], ['s', 40], ['s', 60], ['p', 160, 100], ['s', 320], ['s', 340]] },
     { L: 11, p: [['s', 0], ['s', 20], ['s', 40], ['b', 110, 2], ['s', 200], ['s', 220]] },
     { L: 11, p: [['p', 0, 90], ['b', 140, 1], ['b', 176, 2], ['p', 230, 90]] },
     { L: 12, p: [['b', 0, 2], ['s', 90], ['s', 110], ['b', 260, 2], ['s', 350], ['s', 370], ['s', 390]] },
@@ -1559,7 +1559,7 @@ canvas#game {
     { L: 13, p: [['p', 0, 100], ['s', 160], ['s', 180], ['s', 200], ['b', 270, 2]] },
     { L: 13, p: [['b', 0, 1], ['b', 36, 2], ['b', 72, 2], ['b', 108, 1], ['s', 160], ['s', 180], ['s', 200], ['s', 220]] },
     { L: 14, p: [['s', 0], ['s', 20], ['s', 40], ['s', 60], ['s', 80], ['p', 150, 100], ['s', 290], ['s', 310]] },
-    { L: 15, p: [['p', 0, 120], ['b', 170, 2], ['p', 240, 100], ['s', 380], ['s', 400], ['s', 420]] },
+    { L: 15, p: [['p', 0, 90], ['b', 150, 2], ['p', 220, 80], ['s', 350], ['s', 370], ['s', 390]] },
     // stairs, like Geometry Dash: every step is a wall, so you jump from step to step (no automatic climbing)
     { L: 2, st: true, p: [['b', 0, 1, 72], ['b', 72, 2, 72]] },
     { L: 3, st: true, p: [['b', 0, 1, 60], ['b', 60, 2, 60], ['b', 120, 3, 60], ['b', 180, 2, 60], ['b', 240, 1, 60]] },
@@ -1626,6 +1626,7 @@ canvas#game {
     Array.prototype.push.apply(obstacles, gdBuild(g, W, speed));
     lastGap = speed * (36 + rnd() * Math.max(6, 20 - 2 * (L - 1)));   // always room to land and read the next pattern
   }
+  const GD_JUMP = -9;   // Geometry jump: about 68 px high (the Runner jumps higher), so it takes more care
   function gdPhysics(dt) {
     const p = player;
     p.x = 90; p.ducking = false;
@@ -1636,7 +1637,7 @@ canvas#game {
       if (o.kind === 'pit') { if (cx > o.x + 4 && cx < o.x + o.w - 4) support = 1e9; }
       else if (o.kind === 'block') { if (r > o.x + 2 && l < o.x + o.w - 2 && p.y <= o.y + 4 && o.y < support) support = o.y; }
     }
-    if (jumpHeld && p.onGround) { p.vy = JUMP_V; p.onGround = false; sfx.jump(); }
+    if (jumpHeld && p.onGround) { p.vy = GD_JUMP; p.onGround = false; sfx.jump(); }
     if (p.onGround && support > p.y + 0.5) p.onGround = false;
     if (!p.onGround) {
       const prev = p.y;
