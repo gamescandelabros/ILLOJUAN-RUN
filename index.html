@@ -367,6 +367,20 @@ h1, .brand {
 .map-rec { font-size: 12px; }
 .map-play { font: 700 10px/1 var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 10px; background: var(--accent); color: var(--on-accent); }
 
+/* settings */
+.set-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; align-content: start; }
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; min-height: 46px; background: var(--panel); border: 2px solid var(--line); }
+.set-label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.set-label strong { font: 700 12px/1.2 var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; }
+.set-label span { font-size: 11px; line-height: 1.25; color: var(--muted); }
+.set-ctl { display: flex; align-items: center; gap: 8px; flex: none; }
+.set-ctl input[type=range] { width: 92px; accent-color: var(--accent); cursor: pointer; }
+.set-ctl input[type=range]:disabled { opacity: 0.4; cursor: default; }
+.set-ctl .btn { min-width: 52px; padding: 8px 10px; }
+.btn.danger { border-color: #C62828; color: #C62828; box-shadow: 0 3px 0 #C62828; }
+.btn.danger.armed { background: #C62828; color: #fff; }
+.hide-tips .tip { display: none; }
+
 /* skins */
 .skins { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; }
 .skin-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--panel); border: 2px solid var(--line); }
@@ -407,7 +421,7 @@ canvas#game {
     <div class="topbar">
       <span class="kicker">Menú principal</span>
       <button id="btn-theme" class="btn small" type="button" aria-label="Cambiar el mapa del fondo">Mapa: Vice City</button>
-      <div class="minor"><button class="btn small btn-full" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button><button id="btn-skins" class="btn small primary" type="button">Skins</button></div>
+      <div class="minor"><button class="btn small btn-full" type="button" aria-label="Pantalla completa" title="Pantalla completa (F)"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M1 6V1h5M10 1h5v5M15 10v5h-5M6 15H1v-5" fill="none" stroke="currentColor" stroke-width="2"/></svg></button><button id="btn-settings" class="btn small" type="button">Ajustes</button><button id="btn-skins" class="btn small primary" type="button">Skins</button></div>
     </div>
 
     <header class="hero">
@@ -487,6 +501,16 @@ canvas#game {
     </div>
     <p class="lead">Tu récord es tu dinero. Cada personaje se desbloquea al llegar a su cifra, y el dinero no se gasta. Récord actual: <span id="skins-rec" class="money">$00000</span></p>
     <div id="skins-grid" class="skins"></div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="view-settings" class="view" aria-label="Ajustes" hidden>
+    <div class="topbar">
+      <button id="btn-settings-back" class="btn small" type="button">← Menú</button>
+      <h1 class="brand">Ajustes</h1>
+      <span class="kicker">Se guardan solos</span>
+    </div>
+    <div class="set-grid" id="set-grid"></div>
   </section>
 
   <!-- JUEGO -->
@@ -938,9 +962,20 @@ canvas#game {
   }
 
   /* ---------- sound and music ---------- */
+  // settings (saved in this browser)
+  const SET_DEFAULT = { music: true, sfx: true, musicVol: 70, sfxVol: 80, autoPause: true, reduceFlash: false, tips: true };
+  const set = (function () {
+    const o = {}; let saved = {};
+    try { saved = JSON.parse(localStorage.getItem('illojuan-settings') || '{}') || {}; } catch (e) { saved = {}; }
+    for (const k in SET_DEFAULT) o[k] = (typeof saved[k] === typeof SET_DEFAULT[k]) ? saved[k] : SET_DEFAULT[k];
+    return o;
+  })();
+  function saveSet() { try { localStorage.setItem('illojuan-settings', JSON.stringify(set)); } catch (e) { /* ignore */ } }
+
   let actx = null, muted = false;
   function tone(freq, dur, type, vol, slideTo) {
-    if (muted) return;
+    if (muted || !set.sfx || set.sfxVol <= 0) return;
+    vol = (vol || 0.04) * (set.sfxVol / 80);
     try {
       audioCtx();
       const t = actx.currentTime;
@@ -1015,7 +1050,7 @@ canvas#game {
     if (CLAP[s]) clap(t, CLAP[s]);
   }
   function musicTick() {
-    if (muted || !actx) return;
+    if (muted || !set.music || !actx) return;
     if (nextT < actx.currentTime - 0.2) nextT = actx.currentTime + 0.05;
     while (nextT < actx.currentTime + 0.35) {
       scheduleStep(nextT);
@@ -1031,27 +1066,33 @@ canvas#game {
     if (ytFrame) return;
     try {
       ytFrame = document.createElement('iframe');
-      ytFrame.src = 'https://www.youtube.com/embed/' + YT_ID + '?autoplay=1&loop=1&playlist=' + YT_ID + '&controls=0&playsinline=1';
+      ytFrame.src = 'https://www.youtube.com/embed/' + YT_ID + '?autoplay=1&loop=1&playlist=' + YT_ID + '&controls=0&playsinline=1&enablejsapi=1';
       ytFrame.allow = 'autoplay; encrypted-media';
       ytFrame.setAttribute('aria-hidden', 'true');
       ytFrame.tabIndex = -1;
       ytFrame.title = 'Música';
       ytFrame.style.cssText = 'position:fixed;left:0;bottom:0;width:2px;height:2px;border:0;opacity:0.01;pointer-events:none;';
+      ytFrame.addEventListener('load', ytVolume);
       document.body.appendChild(ytFrame);
     } catch (e) { ytFrame = null; }
+  }
+  function ytVolume() {
+    if (!ytFrame || !ytFrame.contentWindow) return;
+    const msg = JSON.stringify({ event: 'command', func: 'setVolume', args: [Math.round(set.musicVol)] });
+    [0, 600, 1800].forEach(function (d) { setTimeout(function () { try { if (ytFrame && ytFrame.contentWindow) ytFrame.contentWindow.postMessage(msg, 'https://www.youtube.com'); } catch (e) { /* ignore */ } }, d); });
   }
   function ytStop() {
     if (ytFrame) { try { ytFrame.remove(); } catch (e) { /* ignore */ } ytFrame = null; }
   }
   function musicEnsure() {
-    if (muted) return;
+    if (muted || !set.music) return;
     if (currentMapId === 'sanandreas') { ytStart(); return; }
     if (musicTimer) return;
     try {
       audioCtx();
       if (!master) {
         master = actx.createGain();
-        master.gain.value = 0.55;
+        master.gain.value = 0.55 * (set.musicVol / 70);
         master.connect(actx.destination);
         noiseBuf = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.1), actx.sampleRate);
         const d = noiseBuf.getChannelData(0);
@@ -1636,7 +1677,7 @@ canvas#game {
         ctx.fillStyle = g;
         ctx.fillRect(x - 10, y - 10, 42, 40);
         sprite(HEART, x, y, 2, on);
-      } else if (hurtFlash > 0 && i === lives && Math.floor(hurtFlash / 5) % 2 === 0) {
+      } else if (!set.reduceFlash && hurtFlash > 0 && i === lives && Math.floor(hurtFlash / 5) % 2 === 0) {
         sprite(HEART, x, y, 2, white);
       } else {
         ctx.globalAlpha = 0.7;
@@ -1970,7 +2011,7 @@ canvas#game {
     ctx.globalAlpha = 1;
 
     // HUD
-    const blink = flash > 0 && (Math.floor(flash / 6) % 2 === 1);
+    const blink = !set.reduceFlash && flash > 0 && (Math.floor(flash / 6) % 2 === 1);
     const cur = '$' + pad5(score);
     ctx.font = '700 18px Silkscreen, "Courier New", monospace';
     const curW = ctx.measureText(cur).width;
@@ -1987,7 +2028,7 @@ canvas#game {
     } else {
       banner('NIVEL ' + level(), W - 14, 47, 11, 'right');
     }
-    if (levelFlash > 0 && state === 'running' && !paused) {
+    if (levelFlash > 0 && state === 'running' && !paused && !set.reduceFlash) {
       ctx.globalAlpha = Math.min(1, levelFlash / 30);
       banner('NIVEL ' + level(), W / 2, 44, 22);
       ctx.globalAlpha = 1;
@@ -2207,6 +2248,69 @@ canvas#game {
     return e;
   }
 
+  /* ---------- settings screen ---------- */
+  function applySettings() {
+    document.documentElement.classList.toggle('hide-tips', !set.tips);
+    if (master) master.gain.value = 0.55 * (set.musicVol / 70);
+    ytVolume();
+    if (!set.music) musicStop();
+    else if (!muted && view === 'play' && state !== 'idle') musicEnsure();
+  }
+  let wipeArmed = false;
+  function renderSettings() {
+    const grid = $('set-grid');
+    grid.textContent = '';
+    function row(title, hint, ctl) {
+      const r = el('div', 'set-row');
+      const l = el('div', 'set-label');
+      l.appendChild(el('strong', null, title));
+      if (hint) l.appendChild(el('span', null, hint));
+      r.appendChild(l);
+      const c = el('div', 'set-ctl');
+      ctl.forEach(function (x) { c.appendChild(x); });
+      r.appendChild(c);
+      grid.appendChild(r);
+    }
+    function toggle(get, onChange, yes, no) {
+      const b = el('button', 'btn small' + (get() ? ' primary' : ''), get() ? (yes || 'Sí') : (no || 'No'));
+      b.type = 'button';
+      b.setAttribute('aria-pressed', get() ? 'true' : 'false');
+      b.addEventListener('click', function () { onChange(!get()); saveSet(); applySettings(); renderSettings(); });
+      return b;
+    }
+    function slider(key, enabled, preview) {
+      const i = document.createElement('input');
+      i.type = 'range'; i.min = '0'; i.max = '100'; i.step = '5'; i.value = String(set[key]);
+      i.disabled = !enabled;
+      i.setAttribute('aria-label', 'Volumen');
+      i.addEventListener('input', function () { set[key] = +i.value; applySettings(); });
+      i.addEventListener('change', function () { saveSet(); if (preview) preview(); });
+      return i;
+    }
+    row('Sonido (M)', 'Silencia todo el juego de golpe', [toggle(function () { return !muted; }, function (v) { muted = !v; bSound.textContent = 'Sonido: ' + (muted ? 'no' : 'sí'); if (muted) musicStop(); }, 'Sí', 'No')]);
+    row('Música', 'Los temas de cada mapa', [slider('musicVol', set.music), toggle(function () { return set.music; }, function (v) { set.music = v; })]);
+    row('Efectos', 'Saltos, golpes y avisos', [slider('sfxVol', set.sfx, function () { sfx.point(); }), toggle(function () { return set.sfx; }, function (v) { set.sfx = v; })]);
+    row('Pausa automática', 'Pausa al cambiar de pestaña', [toggle(function () { return set.autoPause; }, function (v) { set.autoPause = v; })]);
+    row('Reducir destellos', 'Sin parpadeos en el dinero ni en los corazones', [toggle(function () { return set.reduceFlash; }, function (v) { set.reduceFlash = v; })]);
+    row('Consejos', 'La franja de ayuda del menú', [toggle(function () { return set.tips; }, function (v) { set.tips = v; })]);
+    const wipe = el('button', 'btn small danger' + (wipeArmed ? ' armed' : ''), wipeArmed ? '¿Seguro?' : 'Borrar');
+    wipe.type = 'button';
+    wipe.addEventListener('click', function () {
+      if (!wipeArmed) { wipeArmed = true; renderSettings(); setTimeout(function () { if (wipeArmed) { wipeArmed = false; if (view === 'settings') renderSettings(); } }, 4000); return; }
+      try {
+        const rm = [];
+        for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf('illojuan-') === 0 && k !== 'illojuan-settings') rm.push(k); }
+        rm.forEach(function (k) { localStorage.removeItem(k); });
+      } catch (e) { /* ignore */ }
+      location.reload();
+    });
+    row('Borrar progreso', 'Récords, niveles y skin elegida', [wipe]);
+    const reset = el('button', 'btn small', 'Restablecer');
+    reset.type = 'button';
+    reset.addEventListener('click', function () { for (const k in SET_DEFAULT) set[k] = SET_DEFAULT[k]; saveSet(); applySettings(); renderSettings(); });
+    row('Ajustes por defecto', 'Vuelve a los valores de fábrica', [reset]);
+  }
+
   function renderSkins() {
     const grid = $('skins-grid');
     grid.textContent = '';
@@ -2255,7 +2359,7 @@ canvas#game {
   }
 
   /* ---------- views ---------- */
-  const views = { menu: $('view-menu'), maps: $('view-maps'), levels: $('view-levels'), skins: $('view-skins'), play: $('view-play') };
+  const views = { menu: $('view-menu'), maps: $('view-maps'), levels: $('view-levels'), skins: $('view-skins'), settings: $('view-settings'), play: $('view-play') };
   let looping = false, last = 0;
 
   // the whole interface (buttons, panels) takes the colours of the map being shown
@@ -2272,6 +2376,7 @@ canvas#game {
     else if (v === 'maps') { resetToIdle(); refreshMenu(); renderThumbs(); }
     else if (v === 'levels') { resetToIdle(); renderLevels(); }
     else if (v === 'skins') { resetToIdle(); renderSkins(); }
+    else if (v === 'settings') { resetToIdle(); renderSettings(); }
     else if (v === 'play') { enterPlay(); }
   }
 
@@ -2423,6 +2528,8 @@ canvas#game {
 
   // menu navigation
   $('btn-skins').addEventListener('click', function () { showView('skins'); });
+  $('btn-settings').addEventListener('click', function () { showView('settings'); });
+  $('btn-settings-back').addEventListener('click', function () { showView('menu'); });
   $('btn-skins-back').addEventListener('click', function () { showView('menu'); });
   $('btn-back').addEventListener('click', function () { showView('levels'); });
   $('btn-levels-back').addEventListener('click', function () { showView('maps'); });
@@ -2435,7 +2542,7 @@ canvas#game {
   });
 
   document.addEventListener('visibilitychange', function () {
-    if (document.hidden && state === 'running' && !paused) { paused = true; syncPauseLabel(); }
+    if (document.hidden && set.autoPause && state === 'running' && !paused) { paused = true; syncPauseLabel(); }
     try {
       if (actx) { if (document.hidden) actx.suspend(); else actx.resume(); }
     } catch (e) { /* ignore */ }
@@ -2459,6 +2566,7 @@ canvas#game {
       if (view === 'skins') renderSkins();
     }).catch(function () {});
   }
+  applySettings();
   setMode(mode);
   showView('menu');
   fitStage();
