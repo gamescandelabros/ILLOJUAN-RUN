@@ -1059,58 +1059,11 @@ canvas#game {
       if (mStep % 8 === 0) mBar++;
     }
   }
-  // Menu and San Andreas tracks. Each slot plays the player's own audio file if they picked one in Ajustes,
-  // otherwise a YouTube track through the official embedded player (menus: GTA III theme; San Andreas: Eshtewy - Feisty).
+  // Menu and San Andreas tracks: a YouTube track through the official embedded player (menus: GTA III theme; San Andreas: Eshtewy - Feisty).
   // Browsers only allow sound after the first click or key press, so the menu track starts then.
   const YT_IDS = { menu: 'qqpTq9_rf_Q', sa: 'xnm2_aGbLew' };
-  const TRACK_NAMES = { menu: 'Música del menú', sa: 'Música de San Andreas' };
   let ytFrame = null, audioEl = null, ytId = null, gestured = false, ytBroken = false;
-  const custom = { menu: null, sa: null };   // object URLs of the files picked by the player
-  const customName = { menu: '', sa: '' };
-
-  // saved audio files (IndexedDB, because they are too big for localStorage)
-  function idb(cb) {
-    try {
-      const rq = indexedDB.open('illojuan-audio', 1);
-      rq.onupgradeneeded = function () { rq.result.createObjectStore('f'); };
-      rq.onsuccess = function () { try { cb(rq.result.transaction('f', 'readwrite').objectStore('f')); } catch (e) { /* ignore */ } };
-    } catch (e) { /* storage may be unavailable */ }
-  }
-  function loadCustomAudio() {
-    ['menu', 'sa'].forEach(function (slot) {
-      idb(function (st) {
-        const g = st.get(slot);
-        g.onsuccess = function () {
-          if (g.result && g.result.blob) {
-            custom[slot] = URL.createObjectURL(g.result.blob); customName[slot] = g.result.name || '';
-            if (view === 'settings') renderSettings();
-            if (view !== 'play') menuMusic();
-          }
-        };
-      });
-    });
-  }
-  function pickAudio(slot) {
-    const inp = document.createElement('input');
-    inp.type = 'file'; inp.accept = 'audio/*';
-    inp.addEventListener('change', function () {
-      const file = inp.files && inp.files[0];
-      if (!file) return;
-      idb(function (st) { st.put({ blob: file, name: file.name }, slot); });
-      if (custom[slot]) URL.revokeObjectURL(custom[slot]);
-      custom[slot] = URL.createObjectURL(file); customName[slot] = file.name;
-      ytStop();
-      if (view === 'settings') { renderSettings(); menuMusic(); }
-    });
-    inp.click();
-  }
-  function clearAudio(slot) {
-    idb(function (st) { st.delete(slot); });
-    if (custom[slot]) URL.revokeObjectURL(custom[slot]);
-    custom[slot] = null; customName[slot] = '';
-    ytStop();
-    if (view === 'settings') { renderSettings(); menuMusic(); }
-  }
+  const custom = { menu: null, sa: null };
 
   function ytStart(slot) {
     if ((ytFrame || audioEl) && ytId === slot) return;
@@ -2379,20 +2332,6 @@ canvas#game {
     row('Pausa automática', 'Pausa al cambiar de pestaña', [toggle(function () { return set.autoPause; }, function (v) { set.autoPause = v; })]);
     row('Reducir destellos', 'Sin parpadeos en el dinero ni en los corazones', [toggle(function () { return set.reduceFlash; }, function (v) { set.reduceFlash = v; })]);
     row('Consejos', 'La franja de ayuda del menú', [toggle(function () { return set.tips; }, function (v) { set.tips = v; })]);
-    [['menu', 'Música del menú'], ['sa', 'Música de San Andreas']].forEach(function (t) {
-      const slot = t[0];
-      const pick = el('button', 'btn small', custom[slot] ? 'Cambiar' : 'Elegir');
-      pick.type = 'button';
-      pick.addEventListener('click', function () { pickAudio(slot); });
-      const ctl = [pick];
-      if (custom[slot]) {
-        const del = el('button', 'btn small', 'Quitar');
-        del.type = 'button';
-        del.addEventListener('click', function () { clearAudio(slot); });
-        ctl.unshift(del);
-      }
-      row(t[1], custom[slot] ? ('Tu archivo: ' + (customName[slot] || 'audio')) : (ytBroken ? 'YouTube no deja reproducirlo aquí: elige un archivo' : 'Ahora: canción de YouTube. Puedes usar tu archivo'), ctl);
-    });
     const wipe = el('button', 'btn small danger' + (wipeArmed ? ' armed' : ''), wipeArmed ? '¿Seguro?' : 'Borrar');
     wipe.type = 'button';
     wipe.addEventListener('click', function () {
@@ -2669,7 +2608,6 @@ canvas#game {
     }).catch(function () {});
   }
   ['pointerdown', 'keydown'].forEach(function (ev) { window.addEventListener(ev, function () { if (!gestured) { gestured = true; menuMusic(); } }, true); });
-  loadCustomAudio();
   applySettings();
   setMode(mode);
   showView('menu');
