@@ -423,7 +423,7 @@ canvas#game {
       <div class="hero-title">
         <h1>Illojuan Run</h1>
       </div>
-      <canvas id="hero-chars" aria-label="IlloJuan, Spok Sponha, Guille e ILLOJUAN Vice City"></canvas>
+      <canvas id="hero-chars" aria-label="IlloJuan, Spok Sponha y Guille"></canvas>
     </header>
 
     <div class="cover-actions">
@@ -651,11 +651,11 @@ canvas#game {
   const SPOK_DUCK_A = SPOK_DUCK_HEAD.concat(['..AAAA..AAAA..']);
   const SPOK_DUCK_B = SPOK_DUCK_HEAD.concat(['...AAAA.AAAA..']);
 
-  // ILLOJUAN Vice City: dark quiff with a grey streak, brows, full beard, pink jacket and a gold chain
-  // H = hair, G = streak, S = skin, N = shade, X = brows, E = eyes, D = beard, L = lip, P = jacket, Q = jacket shade, Y = gold chain, C = dark shirt
+  // ILLOJUAN Vice City: dark quiff, brows, full beard, pink jacket and a gold chain
+  // H = hair, S = skin, N = shade, X = brows, E = eyes, D = beard, L = lip, P = jacket, Q = jacket shade, Y = gold chain, C = dark shirt
   const VC_BODY = [
-    '...HHGGHHHH...',
-    '..HHHGGGHHHH..',
+    '...HHHHHHHH...',
+    '..HHHHHHHHHH..',
     '..HHHHHHHHHH..',
     '..HSSSSSSSSH..',
     '..DSXXSSXXSD..',
@@ -679,7 +679,7 @@ canvas#game {
     .concat(VC_BODY.slice(6))
     .concat(LEGS_STAND);
   const VC_DUCK_HEAD = [
-    '..HHGGGHHHHH..',
+    '..HHHHHHHHHH..',
     '..DSXXSSXXSD..',
     '..DSEESSEESD..',
     '..DDDLLLLDDD..',
@@ -822,11 +822,11 @@ canvas#game {
       }
     },
     {
-      id: 'illovc', name: 'ILLOJUAN Vice City', short: 'Illojuan VC', cost: 3000,
+      id: 'illovc', name: 'ILLOJUAN Vice City', cost: 3000, noCover: true,
       sprites: { stand: VC_STAND, runA: VC_A, runB: VC_B, duckA: VC_DUCK_A, duckB: VC_DUCK_B, dead: VC_DEAD },
       colors: function (k) {
         return {
-          H: '#1B1B20', G: '#A9A9B8', S: '#D9A07C', N: '#BE8462', X: '#1B1B20', E: '#1B1B20',
+          H: '#1B1B20', S: '#D9A07C', N: '#BE8462', X: '#1B1B20', E: '#1B1B20',
           D: '#2B221E', L: '#8E4A44', P: '#F28CC0', Q: '#C9609A', Y: '#F2C230', C: '#2A2438',
           K: '#2A2A3A', A: '#F2F2F2'
         };
@@ -2066,10 +2066,9 @@ canvas#game {
     ctx.setTransform(sc, 0, 0, sc, 0, 0);
     ctx.clearRect(0, 0, 480, 124);
     const k = worldColors(MAPS.vice, 0);
-    const xs = [14, 134, 254, 374];
+    const xs = [45, 205, 365];
     const best = bestRecord();
-    SKINS.forEach(function (s, i) {
-      if (!s.sprites) return;
+    SKINS.filter(function (s) { return s.sprites && !s.noCover; }).forEach(function (s, i) {
       const x = xs[i];
       ctx.fillStyle = 'rgba(26,10,46,0.5)';
       ctx.fillRect(x + 4, 92, 62, 5);
@@ -2082,9 +2081,9 @@ canvas#game {
       ctx.lineJoin = 'round';
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(30,8,40,0.9)';
-      ctx.strokeText((s.short || s.name).toUpperCase(), x + 35, 114);
+      ctx.strokeText(s.name.toUpperCase(), x + 35, 114);
       ctx.fillStyle = PALE;
-      ctx.fillText((s.short || s.name).toUpperCase(), x + 35, 114);
+      ctx.fillText(s.name.toUpperCase(), x + 35, 114);
     });
     ctx = prev;
   }
