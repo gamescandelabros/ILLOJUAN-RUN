@@ -368,7 +368,7 @@ h1, .brand {
 .map-play { font: 700 10px/1 var(--font-display); letter-spacing: 0.12em; text-transform: uppercase; padding: 7px 10px; background: var(--accent); color: var(--on-accent); }
 
 /* skins */
-.skins { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-content: start; }
+.skins { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; align-content: start; }
 .skin-card { display: flex; flex-direction: column; gap: 8px; padding: 12px; background: var(--panel); border: 2px solid var(--line); }
 .skin-card.is-on { box-shadow: 0 0 0 3px var(--accent); }
 .skin-art {
@@ -423,7 +423,7 @@ canvas#game {
       <div class="hero-title">
         <h1>Illojuan Run</h1>
       </div>
-      <canvas id="hero-chars" aria-label="IlloJuan, Spok Sponha y Guille"></canvas>
+      <canvas id="hero-chars" aria-label="IlloJuan, Spok Sponha, Guille e ILLOJUAN Vice City"></canvas>
     </header>
 
     <div class="cover-actions">
@@ -651,6 +651,45 @@ canvas#game {
   const SPOK_DUCK_A = SPOK_DUCK_HEAD.concat(['..AAAA..AAAA..']);
   const SPOK_DUCK_B = SPOK_DUCK_HEAD.concat(['...AAAA.AAAA..']);
 
+  // ILLOJUAN Vice City: dark quiff with a grey streak, brows, full beard, pink jacket and a gold chain
+  // H = hair, G = streak, S = skin, N = shade, X = brows, E = eyes, D = beard, L = lip, P = jacket, Q = jacket shade, Y = gold chain, C = dark shirt
+  const VC_BODY = [
+    '...HHGGHHHH...',
+    '..HHHGGGHHHH..',
+    '..HHHHHHHHHH..',
+    '..HSSSSSSSSH..',
+    '..DSXXSSXXSD..',
+    '..DSEESSEESD..',
+    '..DSSSNNSSSD..',
+    '..DDDLLLLDDD..',
+    '...DDDDDDDD...',
+    '..QPCYYYYCPQ..',
+    '.PPPPCYYCPPPP.',
+    'PPPPPPCYPPPPPP',
+    'PPQPPPPPPPPQPP',
+    'PPQPPPPPPPPQPP',
+    'SSQPPPPPPPPQSS',
+    '..QPPPPPPPPQ..'
+  ];
+  const VC_STAND = VC_BODY.concat(LEGS_STAND);
+  const VC_A = VC_BODY.concat(LEGS_A);
+  const VC_B = VC_BODY.concat(LEGS_B);
+  const VC_DEAD = VC_BODY.slice(0, 5)
+    .concat(['..DSXXSSXXSD..'])
+    .concat(VC_BODY.slice(6))
+    .concat(LEGS_STAND);
+  const VC_DUCK_HEAD = [
+    '..HHGGGHHHHH..',
+    '..DSXXSSXXSD..',
+    '..DSEESSEESD..',
+    '..DDDLLLLDDD..',
+    '..QPCYYYYCPQ..',
+    'PPPPPCYYCPPPPP',
+    'PPQPPPPPPPPQPP'
+  ];
+  const VC_DUCK_A = VC_DUCK_HEAD.concat(['..AAAA..AAAA..']);
+  const VC_DUCK_B = VC_DUCK_HEAD.concat(['...AAAA.AAAA..']);
+
   // obstacles: traffic cones, road barriers, containers, patrol cars, buses and helicopters
   function build(w, h, cell) {
     const rows = [];
@@ -779,6 +818,17 @@ canvas#game {
         return {
           T: '#6B4426', F: '#3F8F3A', Y: '#C9D43A', D: '#8FA02A', X: '#2A1A10',
           S: '#E8A27A', H: '#4A2E1A', K: '#2A2A1A', A: '#F2F2F2'
+        };
+      }
+    },
+    {
+      id: 'illovc', name: 'ILLOJUAN Vice City', short: 'Illojuan VC', cost: 3000,
+      sprites: { stand: VC_STAND, runA: VC_A, runB: VC_B, duckA: VC_DUCK_A, duckB: VC_DUCK_B, dead: VC_DEAD },
+      colors: function (k) {
+        return {
+          H: '#1B1B20', G: '#A9A9B8', S: '#D9A07C', N: '#BE8462', X: '#1B1B20', E: '#1B1B20',
+          D: '#2B221E', L: '#8E4A44', P: '#F28CC0', Q: '#C9609A', Y: '#F2C230', C: '#2A2438',
+          K: '#2A2A3A', A: '#F2F2F2'
         };
       }
     }
@@ -1365,7 +1415,7 @@ canvas#game {
     }
     obstacles.push(o);
     // close together: 26 to 52 frames between obstacles, tightening a little with each level
-    lastGap = speed * (Math.max(16, 27 - L) + extraF + rnd() * Math.max(8, 26 - 3 * (L - 1))) + extraPx;
+    lastGap = speed * (Math.max(26, 38 - L) + extraF + rnd() * Math.max(8, 26 - 3 * (L - 1))) + extraPx;
   }
 
   function hit(a, b) {
@@ -1411,6 +1461,7 @@ canvas#game {
         if (p.y >= GROUND) { p.y = GROUND; p.vy = 0; p.onGround = true; }
       } else {
         runT += dt;
+        if (jumpHeld && !duck) doJump();   // holding the jump key keeps jumping until it is released
       }
       p.ducking = duck && p.onGround;
       const mv = (rightHeld ? 1 : 0) - (leftHeld ? 1 : 0);
@@ -2015,7 +2066,7 @@ canvas#game {
     ctx.setTransform(sc, 0, 0, sc, 0, 0);
     ctx.clearRect(0, 0, 480, 124);
     const k = worldColors(MAPS.vice, 0);
-    const xs = [45, 205, 365];
+    const xs = [14, 134, 254, 374];
     const best = bestRecord();
     SKINS.forEach(function (s, i) {
       if (!s.sprites) return;
@@ -2031,9 +2082,9 @@ canvas#game {
       ctx.lineJoin = 'round';
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(30,8,40,0.9)';
-      ctx.strokeText(s.name.toUpperCase(), x + 35, 114);
+      ctx.strokeText((s.short || s.name).toUpperCase(), x + 35, 114);
       ctx.fillStyle = PALE;
-      ctx.fillText(s.name.toUpperCase(), x + 35, 114);
+      ctx.fillText((s.short || s.name).toUpperCase(), x + 35, 114);
     });
     ctx = prev;
   }
