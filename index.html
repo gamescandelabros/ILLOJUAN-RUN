@@ -1342,7 +1342,7 @@ canvas#game {
     { L: 8, st: true, p: [['b', 0, 1, 60], ['b', 60, 2, 60], ['b', 120, 3, 60], ['p', 180, 100], ['b', 280, 3, 60], ['b', 340, 2, 60], ['b', 400, 1, 60]] },
     { L: 9, st: true, p: [['b', 0, 1, 190], ['b', 190, 2, 190], ['b', 380, 3, 190]] },
     { L: 10, st: true, p: [['b', 0, 1, 36], ['b', 36, 2, 36], ['b', 72, 3, 36], ['b', 108, 2, 36], ['b', 144, 3, 36], ['b', 180, 4, 36], ['b', 216, 3, 36], ['s', 270], ['s', 290]] },
-    { L: 11, st: true, p: [['b', 0, 1, 100], ['s', 40, 36], ['b', 100, 2, 100], ['s', 140, 72], ['b', 200, 3, 100]] },
+    { L: 11, st: true, p: [['b', 0, 1, 100], ['s', 40, 24], ['b', 100, 2, 100], ['s', 140, 48], ['b', 200, 3, 100]] },
     { L: 12, st: true, p: [['b', 0, 1, 60], ['b', 60, 2, 60], ['b', 120, 3, 60], ['b', 180, 4, 60], ['p', 240, 110], ['b', 350, 4, 60], ['b', 410, 3, 60], ['b', 470, 2, 60], ['b', 530, 1, 60]] },
     { L: 13, st: true, p: [['b', 0, 1, 48], ['s', 60], ['b', 100, 2, 48], ['s', 160], ['s', 180], ['b', 230, 3, 48], ['p', 278, 100]] },
     { L: 14, st: true, p: [['b', 0, 1, 190], ['b', 190, 2, 190], ['b', 380, 3, 190], ['s', 640], ['s', 660], ['s', 680]] },
@@ -1350,12 +1350,13 @@ canvas#game {
   ];
   // items: ['s', dx, rise] spike, ['b', dx, units, width] block, ['p', dx, width] pit
   // stair patterns (st) are stretched with the speed so the jump arcs always fit the steps
+  const BLK = 24;   // height of one block unit (the character is 36 tall, so a block is two thirds of him)
   function gdBuild(g, x0, spd) {
     const out = [], k = g.st ? Math.max(1, spd / 7) : 1;
     for (let i = 0; i < g.p.length; i++) {
       const it = g.p[i], x = x0 + it[1] * k;
       if (it[0] === 's') out.push({ kind: 'spike', x: x, y: GROUND - 22 - (it[2] || 0), w: 20, h: 22 });
-      else if (it[0] === 'b') out.push({ kind: 'block', x: x, y: GROUND - 36 * it[2], w: (it[3] || 36) * k, h: 36 * it[2], u: it[2] });
+      else if (it[0] === 'b') out.push({ kind: 'block', x: x, y: GROUND - BLK * it[2], w: (it[3] || 36) * k, h: BLK * it[2], u: it[2] });
       else out.push({ kind: 'pit', x: x, y: GROUND, w: it[2] * k, h: H - GROUND });
     }
     return out;
@@ -1399,7 +1400,7 @@ canvas#game {
       runT += dt;
     }
   }
-  const STEP_MAX = 40;   // tallest step (a bit over one block) that holding the jump key climbs
+  const STEP_MAX = 30;   // tallest step (a bit over one block, BLK = 24) that holding the jump key climbs
   function gdCollide() {
     const pb = playerBox();
     for (let i = 0; i < obstacles.length; i++) {
@@ -1983,12 +1984,12 @@ canvas#game {
         ctx.stroke();
       } else if (o.kind === 'block') {
         for (let u = 0; u < o.u; u++) {
-          const by = o.y + u * 36;
+          const by = o.y + u * BLK;
           ctx.fillStyle = k.cInk;
-          ctx.fillRect(Math.round(o.x), Math.round(by), o.w, 36);
+          ctx.fillRect(Math.round(o.x), Math.round(by), o.w, BLK);
           ctx.strokeStyle = k.cAcc;
           ctx.lineWidth = 2;
-          ctx.strokeRect(Math.round(o.x) + 4, Math.round(by) + 4, o.w - 8, 28);
+          ctx.strokeRect(Math.round(o.x) + 3, Math.round(by) + 3, o.w - 6, BLK - 6);
         }
       } else if (o.kind === 'heli') {
         const rows = (Math.floor(droneT / 5) % 2) ? HELI_DOWN : HELI_UP;
