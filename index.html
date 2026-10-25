@@ -1059,16 +1059,78 @@ canvas#game {
       if (mStep % 8 === 0) mBar++;
     }
   }
-  // Menu and San Andreas tracks: a YouTube track through the official embedded player (menus: GTA III theme; San Andreas: Eshtewy - Feisty).
+  // San Andreas matches play a YouTube track through the official embedded player (Eshtewy - Feisty); the menus use the original synthwave loop below.
   // Browsers only allow sound after the first click or key press, so the menu track starts then.
-  const YT_IDS = { menu: 'qqpTq9_rf_Q', sa: 'xnm2_aGbLew' };
+  const YT_IDS = { sa: 'xnm2_aGbLew' };
   let ytFrame = null, audioEl = null, ytId = null, gestured = false, ytBroken = false;
   const custom = { menu: null, sa: null };
 
+  // Menu music: an original 80s synthwave loop (Am - F - C - G) made with the Web Audio API, so it carries no copyright.
+  const SW_STEP = 60 / 104 / 4;
+  const SW_ROOT = [110.00, 87.31, 130.81, 98.00];
+  const SW_PAD = [[220.00, 261.63, 329.63], [174.61, 220.00, 261.63], [261.63, 329.63, 392.00], [196.00, 246.94, 293.66]];
+  const SW_LEAD = [
+    { 0: 659.25, 3: 523.25, 6: 440.00, 8: 523.25, 10: 659.25, 12: 523.25 },
+    { 0: 698.46, 3: 523.25, 6: 440.00, 8: 523.25, 10: 698.46, 12: 659.25 },
+    { 0: 783.99, 3: 659.25, 6: 523.25, 8: 659.25, 10: 783.99, 12: 659.25 },
+    { 0: 587.33, 3: 493.88, 6: 392.00, 8: 493.88, 10: 587.33, 12: 587.33 }
+  ];
+  let swTimer = null, swNext = 0, swStep = 0;
+  function swEnsureAudio() {
+    audioCtx();
+    if (!master) {
+      master = actx.createGain();
+      master.gain.value = 0.55 * (set.musicVol / 70);
+      master.connect(actx.destination);
+    }
+    if (!noiseBuf) {
+      noiseBuf = actx.createBuffer(1, Math.floor(actx.sampleRate * 0.1), actx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+  }
+  function swVoice(type, freq, t, dur, vol, cutoff, attack) {
+    const o = actx.createOscillator(), f = actx.createBiquadFilter(), g = actx.createGain();
+    o.type = type; o.frequency.value = freq;
+    f.type = 'lowpass'; f.frequency.value = cutoff;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + (attack || 0.01));
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(f); f.connect(g); g.connect(master);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  function swNoise(t, vol, dur, type, freq) {
+    const sr = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+    sr.buffer = noiseBuf; f.type = type; f.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    sr.connect(f); f.connect(g); g.connect(master);
+    sr.start(t); sr.stop(t + dur + 0.02);
+  }
+  function swSchedule(t) {
+    const s16 = swStep % 16, bar = Math.floor(swStep / 16) % 4;
+    if (s16 % 2 === 0) swVoice('sawtooth', SW_ROOT[bar] * (s16 % 8 === 6 ? 2 : 1), t, SW_STEP * 1.8, 0.24, 520, 0.008);   // pulsing bass
+    if (s16 === 0) SW_PAD[bar].forEach(function (fq) { swVoice('sawtooth', fq, t, SW_STEP * 15, 0.055, 1400, 0.5); swVoice('sawtooth', fq * 1.006, t, SW_STEP * 15, 0.045, 1400, 0.5); });
+    if (SW_LEAD[bar][s16]) swVoice('square', SW_LEAD[bar][s16], t, SW_STEP * 3.2, 0.07, 2800, 0.01);
+    if (s16 % 8 === 0) { const o = actx.createOscillator(), g = actx.createGain(); o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(40, t + 0.14); g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.2); }   // kick
+    if (s16 % 8 === 4) swNoise(t, 0.22, 0.16, 'bandpass', 1900);   // snare
+    if (s16 % 2 === 0) swNoise(t, 0.07, 0.04, 'highpass', 7000);   // hat
+  }
+  function swTick() {
+    if (muted || !set.music || !actx) return;
+    if (swNext < actx.currentTime - 0.2) swNext = actx.currentTime + 0.05;
+    while (swNext < actx.currentTime + 0.35) { swSchedule(swNext); swNext += SW_STEP; swStep++; }
+  }
+  function swStart() {
+    if (swTimer) return;
+    try { swEnsureAudio(); swNext = actx.currentTime + 0.08; swStep = 0; swTimer = setInterval(swTick, 90); } catch (e) { /* music is optional */ }
+  }
+  function swStop() { if (swTimer) { clearInterval(swTimer); swTimer = null; } }
+
   function ytStart(slot) {
-    if ((ytFrame || audioEl) && ytId === slot) return;
+    if ((ytFrame || audioEl || swTimer) && ytId === slot) return;
     ytStop();
     ytId = slot;
+    if (slot === 'menu') { swStart(); return; }
     try {
       if (custom[slot]) {
         audioEl = new Audio(custom[slot]);
@@ -1115,6 +1177,7 @@ canvas#game {
   function ytStop() {
     if (ytFrame) { try { ytFrame.remove(); } catch (e) { /* ignore */ } ytFrame = null; }
     if (audioEl) { try { audioEl.pause(); } catch (e) { /* ignore */ } audioEl = null; }
+    swStop();
     ytId = null;
   }
   function musicEnsure() {
