@@ -1414,7 +1414,7 @@ canvas#game {
       if (L >= 4) pendingMid = rnd() < Math.min(0.55, 0.15 + 0.07 * (L - 4));
     }
     obstacles.push(o);
-    // close together: 26 to 52 frames between obstacles, tightening a little with each level
+    // 36 to 62 frames between obstacles at the start, tightening a little with each level (always room to land)
     lastGap = speed * (Math.max(26, 38 - L) + extraF + rnd() * Math.max(8, 26 - 3 * (L - 1))) + extraPx;
   }
 
