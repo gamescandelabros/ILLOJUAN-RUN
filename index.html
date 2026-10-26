@@ -1942,6 +1942,36 @@ canvas#game {
   }
 
   // pale lettering with a dark outline, readable on every sky
+  // end-of-level plate: pops in after crossing the finish line (original design in the colours of the map)
+  function drawLevelWon(k) {
+    const t = Math.max(0, Math.min(1, (performance.now() - overAt) / 450));
+    const e = 1 - Math.pow(1 - t, 3);
+    const pw = 380, ph = 96, cx = W / 2, cy = 100;
+    ctx.save();
+    ctx.globalAlpha = t;
+    ctx.translate(cx, cy);
+    ctx.scale(0.7 + 0.3 * e, 0.7 + 0.3 * e);
+    ctx.fillStyle = 'rgba(20, 8, 36, 0.9)';
+    ctx.fillRect(-pw / 2, -ph / 2, pw, ph);
+    ctx.fillStyle = k.cAcc;
+    ctx.fillRect(-pw / 2, -ph / 2, pw, 6);
+    ctx.fillRect(-pw / 2, ph / 2 - 6, pw, 6);
+    ctx.lineWidth = 3; ctx.strokeStyle = k.cAcc;
+    ctx.strokeRect(-pw / 2 + 1.5, -ph / 2 + 1.5, pw - 3, ph - 3);
+    ctx.font = '700 26px Silkscreen, "Courier New", monospace';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.lineJoin = 'round'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.7)';
+    ctx.strokeText('¡NIVEL SUPERADO!', 0, -8);
+    ctx.fillStyle = k.cAcc;
+    ctx.fillText('¡NIVEL SUPERADO!', 0, -8);
+    ctx.font = '700 13px Silkscreen, "Courier New", monospace';
+    ctx.fillStyle = PALE;
+    ctx.fillText('NIVEL ' + (curStage ? curStage.n : 1) + ' DE ' + LEVELS_MAX, -90, 26);
+    ctx.fillStyle = '#7CF28A';
+    ctx.fillText('+$' + pad5(Math.floor(score * e)), 96, 26);
+    ctx.restore();
+  }
+
   function banner(str, x, y, size, align) {
     ctx.font = '700 ' + size + 'px Silkscreen, "Courier New", monospace';
     ctx.textAlign = align || 'center';
@@ -2297,7 +2327,7 @@ canvas#game {
       text(mode === 'gd' ? 'MANTÉN ESPACIO, W O CLIC PARA SALTAR' : 'W SALTAR · S AGACHARSE · A D MOVER', W / 2, GROUND - 72, 12, 700, k.cInk);
       if (curStage) text('NIVEL ' + curStage.n + ' · META $' + pad5(curStage.goal), W / 2, GROUND - 124, 12, 700, k.cInk);
     } else if (state === 'won') {
-      banner('NIVEL COMPLETADO', W / 2, 66, 24);
+      drawLevelWon(k);
       banner(curStage && curStage.n < LEVELS_MAX ? 'ESPACIO: SIGUIENTE NIVEL' : '¡HAS SUPERADO LOS 20 NIVELES!', W / 2, GROUND - 100, 14);
       banner('ESC: VOLVER A LOS NIVELES', W / 2, GROUND - 70, 11);
     } else if (state === 'over') {
