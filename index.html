@@ -2697,7 +2697,7 @@ canvas#game {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if ((e.key === 'f' || e.key === 'F') && fsOk && !document.documentElement.classList.contains('ext')) { e.preventDefault(); toggleFull(); return; }
     if (e.key === 'Escape') {
-      if (view !== 'menu') { e.preventDefault(); showView(view === 'play' ? 'levels' : 'menu'); }
+      if (view !== 'menu') { e.preventDefault(); showView(view === 'play' ? (mode === 'gd' ? 'levels' : 'maps') : 'menu'); }
       return;
     }
     if (view !== 'play') return;
@@ -2768,7 +2768,7 @@ canvas#game {
     lsSet('illojuan-mode', m);
     modeName.textContent = m === 'gd' ? 'Geometry' : 'Runner';
     mapsMode.textContent = 'Modo ' + modeName.textContent;
-    modeDesc.textContent = m === 'gd' ? 'Salta sin parar · un solo golpe' : 'Salta y agáchate · 3 vidas';
+    modeDesc.textContent = m === 'gd' ? 'Salta sin parar · un solo golpe' : 'Infinito · salta y agáchate · 3 vidas';
     refreshMenu();
   }
   $('btn-mode').addEventListener('click', function () { setMode(mode === 'gd' ? 'run' : 'gd'); });
@@ -2780,13 +2780,15 @@ canvas#game {
   $('btn-settings').addEventListener('click', function () { showView('settings'); });
   $('btn-settings-back').addEventListener('click', function () { showView('menu'); });
   $('btn-skins-back').addEventListener('click', function () { showView('menu'); });
-  $('btn-back').addEventListener('click', function () { showView('levels'); });
+  $('btn-back').addEventListener('click', function () { showView(mode === 'gd' ? 'levels' : 'maps'); });
   $('btn-levels-back').addEventListener('click', function () { showView('maps'); });
   $('btn-endless').addEventListener('click', function () { curStage = null; showView('play'); });
   Array.prototype.forEach.call(document.querySelectorAll('.map-card'), function (b) {
     b.addEventListener('click', function () {
       currentMapId = b.getAttribute('data-map');
-      showView('levels');
+      // the Runner has no levels: it is one endless run; Geometry has its 20 levels
+      if (mode === 'gd') showView('levels');
+      else { curStage = null; showView('play'); }
     });
   });
 
