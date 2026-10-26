@@ -1392,7 +1392,7 @@ canvas#game {
     world.night = (curStage && curStage.night) ? 1 : 0; world.palm = 0; world.city = 0; world.pole = 0; world.hill = 0; world.ground = 0;
     nightTarget = (curStage && curStage.night) ? 1 : 0; finishSpawned = false;
     milestone = 0; flash = 0; lastGap = 0;
-    lives = mode === 'gd' ? 1 : 3; invuln = 0; hurtFlash = 0;
+    lives = mode === 'gd' ? 1 : 3; invuln = 0; hurtFlash = 0; lastHadPit = false;
     lastLevel = 1; levelFlash = 0; pendingMid = false;
     player.x = mode === 'gd' ? 90 : 44; player.y = GROUND; player.vy = 0; player.onGround = true; player.ducking = false;
     runT = 0; droneT = 0;
@@ -1613,16 +1613,21 @@ canvas#game {
     let sp = 0, bl = 0, pt = 0;
     for (let i = 0; i < g.p.length; i++) { const k = g.p[i][0]; if (k === 's') sp++; else if (k === 'b') bl++; else pt++; }
     const n = g.p.length;
-    return currentMapId === 'sanandreas' ? 1 + 2 * bl / n + (g.st ? 1.5 : 0) : 1 + 2 * (sp + 2 * pt) / n;
+    const w = currentMapId === 'sanandreas' ? 1 + 2 * bl / n + (g.st ? 1.5 : 0) : 1 + 2 * sp / n;
+    return pt ? w * 0.2 : w;   // pits are rare: only now and then
   }
+  let lastHadPit = false;
   function spawnGD() {
     const L = level();
     let pool = GDP.filter(function (g) { return g.L <= L && g.L > L - 5; });
     if (!pool.length) pool = GDP.slice(-5);
     let total = 0;
     const wts = pool.map(function (p) { const x = gdWeight(p); total += x; return x; });
+    // never two pit patterns in a row
+    if (lastHadPit) pool.forEach(function (p, i) { if (p.p.some(function (it) { return it[0] === 'p'; })) { total -= wts[i]; wts[i] = 0; } });
     let pr = rnd() * total, g = pool[pool.length - 1];
-    for (let i = 0; i < pool.length; i++) { pr -= wts[i]; if (pr <= 0) { g = pool[i]; break; } }
+    for (let i = 0; i < pool.length; i++) { pr -= wts[i]; if (pr <= 0 && wts[i] > 0) { g = pool[i]; break; } }
+    lastHadPit = g.p.some(function (it) { return it[0] === 'p'; });
     Array.prototype.push.apply(obstacles, gdBuild(g, W, speed));
     lastGap = speed * (36 + rnd() * Math.max(6, 20 - 2 * (L - 1)));   // always room to land and read the next pattern
   }
