@@ -902,7 +902,7 @@ canvas#game {
   const VC_DUCK_A = VC_DUCK_HEAD.concat(['..AAAA..AAAA..']);
   const VC_DUCK_B = VC_DUCK_HEAD.concat(['...AAAA.AAAA..']);
 
-  // obstacles: traffic cones, road barriers, containers, patrol cars, buses and helicopters
+  // obstacles: traffic cones, road barriers, containers, patrol cars and helicopters
   function build(w, h, cell) {
     const rows = [];
     for (let r = 0; r < h; r++) {
@@ -931,12 +931,6 @@ canvas#game {
     'XXXXXXXXXXXXXXXXXXXXXX', 'XXXXXXXXXXXXXXXXXXXXXX', '.XXXX..........XXXX...',
     '.XXXX..........XXXX...'
   ];
-  const BUS = build(26, 22, function (r, c, w, h) {
-    if (r >= h - 3) return ((c >= 3 && c <= 8) || (c >= w - 9 && c <= w - 4)) ? 'X' : '.';   // wheels
-    if (r >= 3 && r <= 8 && c >= 2 && c <= w - 3 && c % 6 !== 0) return 'A';                // windows
-    if (r === 13) return 'A';                                                              // stripe
-    return 'X';
-  });
   const HELI_BODY = [
     '......XX......',
     '..XXXXXX......',
@@ -955,16 +949,15 @@ canvas#game {
     cone: ob(CONE, function (L) { return L >= 3 ? 3 : (L >= 2 ? 2 : 1); }, 0),
     barrier: ob(BARRIER, function (L) { return L >= 3 ? 2 : 1; }, 0),
     container: ob(CONTAINER, function (L) { return L >= 5 ? 2 : 1; }, 4),
-    police: ob(POLICE, function () { return 1; }, 4),
-    bus: ob(BUS, function () { return 1; }, 8)
+    police: ob(POLICE, function () { return 1; }, 4)
   };
   // what can appear at each level (levels 1 to 5; 5 repeats from then on)
   const SPAWN_TABLE = [
     [['cone', 0.6], ['barrier', 0.4]],
     [['cone', 0.4], ['barrier', 0.3], ['container', 0.3]],
     [['cone', 0.25], ['barrier', 0.2], ['container', 0.2], ['police', 0.35]],
-    [['cone', 0.15], ['barrier', 0.15], ['container', 0.2], ['police', 0.25], ['bus', 0.25]],
-    [['cone', 0.1], ['barrier', 0.15], ['container', 0.15], ['police', 0.3], ['bus', 0.3]]
+    [['cone', 0.15], ['barrier', 0.15], ['container', 0.2], ['police', 0.5]],
+    [['cone', 0.1], ['barrier', 0.15], ['container', 0.15], ['police', 0.6]]
   ];
 
   // O = outline, R = fill, W = highlight
@@ -1507,8 +1500,8 @@ canvas#game {
     return 1 + Math.floor(score / 100);
   }
 
-  // each map favours different obstacles: Vice City more cones, barriers and helicopters; San Andreas more cars, buses and containers
-  const MAP_BIAS = { vice: { cone: 1.5, barrier: 1.5 }, sanandreas: { police: 1.7, bus: 1.7, container: 1.4 } };
+  // each map favours different obstacles: Vice City more cones, barriers and helicopters; San Andreas more cars and containers
+  const MAP_BIAS = { vice: { cone: 1.5, barrier: 1.5 }, sanandreas: { police: 1.7, container: 1.4 } };
   function pickType(L) {
     const table = SPAWN_TABLE[Math.min(L, SPAWN_TABLE.length) - 1];
     const bias = MAP_BIAS[currentMapId] || {};
@@ -1682,10 +1675,10 @@ canvas#game {
     { L: 6, p: [['barrier', 0], ['cone', 9], ['cone', 9]] },
     { L: 7, p: [['police', 0], ['container', 11]] },
     { L: 7, p: [['cone', 0], ['cone', 9], ['cone', 9]] },
-    { L: 8, p: [['bus', 0], ['cone', 10], ['barrier', 10]] },
+    { L: 8, p: [['container', 0], ['cone', 10], ['barrier', 10]] },
     { L: 8, p: [['container', 0], ['heli', 12]] },
     { L: 9, p: [['police', 0], ['heli', 12], ['cone', 10]] },
-    { L: 10, p: [['bus', 0], ['police', 10], ['container', 10]] }
+    { L: 10, p: [['container', 0], ['police', 10], ['container', 10]] }
   ];
   function spawnCombo(L) {
     const pool = RCOMBOS.filter(function (c) { return c.L <= L; });
@@ -2386,7 +2379,7 @@ canvas#game {
     'En Geometry, mantén el salto para subir las escaleras de escalón en escalón. Sin mantenerlo, tocar un escalón de lado es un choque.',
     'Los helicópteros medios se esquivan agachado. Saltar te estrella.',
     'Cada 100 dólares subes de nivel: más velocidad y obstáculos más duros.',
-    'Los autobuses son altos: salta justo antes de llegar a ellos.',
+    'Los contenedores son lo más alto: salta justo antes de llegar a ellos.',
     'Mantén Agacharse en el aire para caer más rápido y enlazar saltos.',
     'Tras un choque tienes unos segundos sin poder chocar. Aprovéchalos.',
     'Cada 100 puntos suena un aviso. Cada 500, cambia entre día y noche.',
