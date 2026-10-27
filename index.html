@@ -1813,7 +1813,7 @@ canvas#game {
     if (curStage && !finishSpawned && score >= curStage.goal - 14) {
       finishSpawned = true;
       obstacles.push({ kind: 'finish', x: W, y: 0, w: 14, h: GROUND });
-    } else if (!finishSpawned && (!last || last.x + last.w < W - lastGap)) spawn();
+    } else if (!finishSpawned && !(curStage && score >= curStage.goal - 60) && (!last || last.x + last.w < W - lastGap)) spawn();   // the run-in to the finish line is clear
     if (finishSpawned) {
       for (let i = 0; i < obstacles.length; i++) {
         if (obstacles[i].kind === 'finish' && obstacles[i].x + obstacles[i].w < player.x) { win(); return; }
