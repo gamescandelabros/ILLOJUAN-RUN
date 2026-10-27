@@ -1619,8 +1619,10 @@ canvas#game {
   let lastHadPit = false;
   function spawnGD() {
     const L = level();
-    let pool = GDP.filter(function (g) { return g.L <= L && g.L > L - 5; });
-    if (!pool.length) pool = GDP.slice(-5);
+    // no pits anywhere: only spikes, blocks and stairs
+    const flat = GDP.filter(function (g) { return !g.p.some(function (it) { return it[0] === 'p'; }); });
+    let pool = flat.filter(function (g) { return g.L <= L && g.L > L - 5; });
+    if (!pool.length) pool = flat.slice(-5);
     let total = 0;
     const wts = pool.map(function (p) { const x = gdWeight(p); total += x; return x; });
     // never two pit patterns in a row
