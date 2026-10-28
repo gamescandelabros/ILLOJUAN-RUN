@@ -2277,26 +2277,9 @@ canvas#game {
         ctx.fillRect(Math.round(o.x), GROUND, 2, H - GROUND);
         ctx.fillRect(Math.round(o.x + o.w) - 2, GROUND, 2, H - GROUND);
       } else if (o.kind === 'spike') {
-        ctx.beginPath();
-        ctx.moveTo(o.x, o.y + o.h);
-        ctx.lineTo(o.x + o.w / 2, o.y);
-        ctx.lineTo(o.x + o.w, o.y + o.h);
-        ctx.closePath();
-        ctx.fillStyle = k.cInk;
-        ctx.fill();
-        ctx.strokeStyle = k.cAcc;
-        ctx.lineWidth = 2;
-        ctx.lineJoin = 'round';
-        ctx.stroke();
+        drawSpike(o, k);
       } else if (o.kind === 'block') {
-        for (let u = 0; u < o.u; u++) {
-          const by = o.y + u * BLK;
-          ctx.fillStyle = k.cInk;
-          ctx.fillRect(Math.round(o.x), Math.round(by), o.w, BLK);
-          ctx.strokeStyle = k.cAcc;
-          ctx.lineWidth = 2;
-          ctx.strokeRect(Math.round(o.x) + 3, Math.round(by) + 3, o.w - 6, BLK - 6);
-        }
+        for (let u = 0; u < o.u; u++) drawBlock(o, u, k);
       } else if (o.kind === 'heli') {
         const rows = (Math.floor(droneT / 5) % 2) ? HELI_DOWN : HELI_UP;
         sprite(rows, o.x, o.y, 2, props);
@@ -2357,6 +2340,77 @@ canvas#game {
       banner('FIN DE PARTIDA', W / 2, 66, 24);
       drawRestart(W / 2, GROUND - 100, 13, k.cInk);
       text('ESPACIO O TOQUE PARA REINTENTAR', W / 2, GROUND - 62, 13, 700, k.cInk);
+    }
+  }
+
+  /* ---------- Geometry obstacles, drawn in the style of each map ---------- */
+  // Vice City: neon signs and glass blocks. San Andreas: brick walls and rusty metal spikes.
+  function nightMix(rgb, k, amount) { return css(mixA(rgb, [14, 8, 26], k.n * amount)); }
+  function drawBlock(o, u, k) {
+    const x = Math.round(o.x), w = Math.max(2, Math.round(o.w)), by = Math.round(o.y + u * BLK), top = u === 0;
+    if (currentMapId === 'sanandreas') {
+      // red brick wall with light mortar and a concrete cap
+      ctx.fillStyle = nightMix([176, 74, 36], k, 0.55);
+      ctx.fillRect(x, by, w, BLK);
+      ctx.fillStyle = nightMix([226, 201, 160], k, 0.55);
+      const half = BLK / 2;
+      for (let r = 0; r < 2; r++) {
+        const y0 = by + r * half;
+        ctx.fillRect(x, y0 + half - 1, w, 1);
+        const off = r ? 8 : 0;
+        for (let bx = x + off; bx < x + w; bx += 16) ctx.fillRect(bx, y0, 1, half);
+      }
+      ctx.fillStyle = 'rgba(58,26,12,0.28)';
+      ctx.fillRect(x, by + BLK - 3, w, 3);
+      if (top) { ctx.fillStyle = nightMix([201, 196, 184], k, 0.55); ctx.fillRect(x - 1, by - 1, w + 2, 5); ctx.fillStyle = 'rgba(58,26,12,0.35)'; ctx.fillRect(x - 1, by + 4, w + 2, 1); }
+      ctx.strokeStyle = '#3A1A0C'; ctx.lineWidth = 1;
+      ctx.strokeRect(x + 0.5, by + 0.5, w - 1, BLK - 1);
+    } else {
+      // dark violet glass block with a neon frame and a cyan light strip
+      const g = ctx.createLinearGradient(0, by, 0, by + BLK);
+      g.addColorStop(0, nightMix([80, 28, 140], k, 0.5));
+      g.addColorStop(1, nightMix([36, 10, 70], k, 0.5));
+      ctx.fillStyle = g;
+      ctx.fillRect(x, by, w, BLK);
+      ctx.save();
+      ctx.strokeStyle = '#FF4FA3'; ctx.lineWidth = 2;
+      ctx.shadowColor = '#FF4FA3'; ctx.shadowBlur = 6;
+      ctx.strokeRect(x + 1.5, by + 1.5, w - 3, BLK - 3);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(0,230,220,0.75)';
+      ctx.fillRect(x + 6, by + Math.round(BLK / 2) - 1, w - 12, 2);
+      if (top) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.fillRect(x + 3, by + 3, w - 6, 1); }
+    }
+  }
+  function drawSpike(o, k) {
+    ctx.beginPath();
+    ctx.moveTo(o.x, o.y + o.h);
+    ctx.lineTo(o.x + o.w / 2, o.y);
+    ctx.lineTo(o.x + o.w, o.y + o.h);
+    ctx.closePath();
+    ctx.lineJoin = 'round';
+    if (currentMapId === 'sanandreas') {
+      // rusty metal spike
+      const g = ctx.createLinearGradient(o.x, 0, o.x + o.w, 0);
+      g.addColorStop(0, nightMix([196, 128, 70], k, 0.5));
+      g.addColorStop(0.5, nightMix([138, 90, 43], k, 0.5));
+      g.addColorStop(1, nightMix([84, 50, 24], k, 0.5));
+      ctx.fillStyle = g; ctx.fill();
+      ctx.strokeStyle = '#2A1208'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.fillStyle = 'rgba(255,220,170,0.5)';
+      ctx.fillRect(Math.round(o.x + o.w / 2) - 1, Math.round(o.y + 5), 1, 6);
+    } else {
+      // neon sign triangle
+      ctx.fillStyle = nightMix([60, 14, 90], k, 0.4);
+      ctx.fill();
+      ctx.save();
+      ctx.strokeStyle = '#00E6DC'; ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#00E6DC'; ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.restore();
+      ctx.beginPath();
+      ctx.moveTo(o.x + o.w / 2, o.y + 8); ctx.lineTo(o.x + o.w / 2 - 4, o.y + o.h - 4); ctx.lineTo(o.x + o.w / 2 + 4, o.y + o.h - 4); ctx.closePath();
+      ctx.fillStyle = '#FF4FA3'; ctx.fill();
     }
   }
 
