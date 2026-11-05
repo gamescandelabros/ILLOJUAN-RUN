@@ -1701,6 +1701,8 @@ canvas#game {
           // falling and just touching the top corner this frame: you landed on it (blocks are safe from above)
           if (player.vy >= 0 && rise <= player.vy + 4) { player.y = o.y; player.vy = 0; player.onGround = true; }
           // the side of a block is a crash: every step of a staircase needs its own full jump
+          // clipping the lower corner of a step while taking off (or just under its top edge): forgiven, you get put on top of it
+          else if (rise > 8 && rise <= BLK * 1.5 && (player.vy < 0 || rise <= 14)) { player.y = o.y; player.vy = 0; player.onGround = true; }
           else if (rise > 8) return true;
         }
       }
